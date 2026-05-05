@@ -1387,7 +1387,6 @@
       <div class="aiBody" id="aiBody">
         <!-- step 1: name -->
         <div class="aiStep" id="aiStep1">
-          <div class="aiTalker"><div class="pulse"></div><span id="ai1Talker">CLAUDE COACH</span></div>
           <div class="aiQ" id="ai1Q">What habit do you want to build?</div>
           <div class="aiHint" id="ai1Hint">A clear name — short verb-first phrase works best.</div>
           <input class="input" id="ai1Input" type="text" maxlength="60" />
@@ -1396,7 +1395,6 @@
 
         <!-- step 2: emoji -->
         <div class="aiStep" id="aiStep2" style="display:none">
-          <div class="aiTalker"><div class="pulse"></div><span id="ai2Talker">CLAUDE COACH</span></div>
           <div class="aiQ" id="ai2Q">Pick an icon.</div>
           <div class="aiHint" id="ai2Hint">A symbol your eye can find in 0.2 seconds.</div>
           <div class="emojiPick" id="emojiPick"></div>
@@ -1404,7 +1402,6 @@
 
         <!-- step 3: when (implementation intention trigger) -->
         <div class="aiStep" id="aiStep3" style="display:none">
-          <div class="aiTalker"><div class="pulse"></div><span id="ai3Talker">CLAUDE COACH</span></div>
           <div class="aiQ" id="ai3Q">When will this happen?</div>
           <div class="aiHint" id="ai3Hint">Research: anchoring a habit to a fixed time or an existing routine triples follow-through.</div>
           <div class="chips" id="whenChips"></div>
@@ -1413,7 +1410,6 @@
 
         <!-- step 4: minimum + frequency + intention review -->
         <div class="aiStep" id="aiStep4" style="display:none">
-          <div class="aiTalker"><div class="pulse"></div><span id="ai4Talker">CLAUDE COACH</span></div>
           <div class="aiQ" id="ai4Q">If today goes sideways, the smallest version is…</div>
           <div class="aiHint" id="ai4Hint">"Two-minute rule" — a habit must survive your worst day.</div>
           <input class="input" id="minInput" type="text" maxlength="60" />
@@ -1491,7 +1487,6 @@ const I18N = {
     planNextLbl: (m) => `CARRY HABITS TO ${m}`,
     doneThisMonth: 'DONE THIS MONTH',
     ofTarget: 'OF TARGET',
-    aiTalker: 'CLAUDE COACH',
     ai1Q: 'What habit do you want to build?',
     ai1Hint: 'A short verb-first phrase. "Read 10 pages." not "more reading."',
     ai1Examples: ['Read 10 pages', 'Run 3 km', 'No SNS until noon', 'Cold shower'],
@@ -1552,7 +1547,6 @@ const I18N = {
     planNextLbl: (m) => `${m} に引き継ぐ`,
     doneThisMonth: '今月の達成',
     ofTarget: '目標比',
-    aiTalker: 'クロード・コーチ',
     ai1Q: 'どんな習慣を始めますか？',
     ai1Hint: '動詞から始まる短いフレーズで。「読書する」より「10ページ読む」のほうが効きます。',
     ai1Examples: ['10ページ読む', '3km走る', '昼までSNSを見ない', '冷水シャワー'],
@@ -2338,11 +2332,6 @@ function paintAIStep() {
   for (let i = 1; i <= 4; i++) {
     document.getElementById('aiStep' + i).style.display = (i === ai.step) ? '' : 'none';
   }
-  // talker labels
-  document.getElementById('ai1Talker').textContent = t.aiTalker;
-  document.getElementById('ai2Talker').textContent = t.aiTalker;
-  document.getElementById('ai3Talker').textContent = t.aiTalker;
-  document.getElementById('ai4Talker').textContent = t.aiTalker;
   // step 1
   document.getElementById('ai1Q').textContent = t.ai1Q;
   document.getElementById('ai1Hint').textContent = t.ai1Hint;
