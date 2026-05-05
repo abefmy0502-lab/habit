@@ -121,15 +121,40 @@
 
   .content {
     flex: 1 1 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ===== HOME — 3-section layout (header / scrollable list / footer) ===== */
+  .home {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .homeHeader {
+    flex: 0 0 auto;
+    padding: 0 32px;
+  }
+  .habitsScroll {
+    flex: 1 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-bottom: 28px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0 32px;
     scrollbar-width: none;
+    /* subtle fade at top + bottom edges to hint scrollability */
+    mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
   }
-  .content::-webkit-scrollbar { display: none; }
-
-  /* ===== HOME ===== */
-  .home { padding: 0 32px; }
+  .habitsScroll::-webkit-scrollbar { display: none; }
+  .homeFooter {
+    flex: 0 0 auto;
+    padding: 0 32px 16px;
+  }
   .topBar {
     display: flex;
     justify-content: space-between;
@@ -323,8 +348,8 @@
 
   /* monthly daily heatmap — the "stacking" visual */
   .yearWrap {
-    margin: 24px 0 0;
-    padding: 18px 0 6px;
+    margin: 0;
+    padding: 14px 0 4px;
     border-top: 1px solid var(--line);
   }
   .yearLbl {
@@ -405,7 +430,7 @@
 
   .calendarLink {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    margin: 24px auto 8px;
+    margin: 12px auto 0;
     color: var(--text-3);
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -1139,6 +1164,7 @@
       padding: 0;
       gap: 0;
       min-height: 100dvh;
+      overflow: hidden;
     }
     .pageHeader, .footHint { display: none; }
     .phone {
@@ -1151,13 +1177,12 @@
     }
     .phone::before { display: none; }
     .statusBar { display: none; }
-    .content {
-      padding-top: env(safe-area-inset-top, 12px);
-      padding-bottom: env(safe-area-inset-bottom, 32px);
-    }
     .homeIndicator { display: none; }
+    .homeHeader { padding-top: env(safe-area-inset-top, 12px); }
+    .homeFooter { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }
     .panelHead { padding-top: calc(env(safe-area-inset-top, 12px) + 28px); }
     .aiHead { padding-top: calc(env(safe-area-inset-top, 12px) + 28px); }
+    .panelBody { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); }
   }
   @media (display-mode: standalone) {
     /* When launched from home screen */
@@ -1186,32 +1211,42 @@
     <!-- HOME -->
     <div class="content">
       <div class="home">
-        <div class="topBar">
-          <button class="iconBtn" id="menuBtn" title="Settings">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="18" r="1"/></svg>
-          </button>
-          <div class="streakChip">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2s4 4 4 8-2 6-4 6-4-2-4-6 4-8 4-8z"/><path d="M5 16c0 4 3 6 7 6s7-2 7-6c0-2-1-3-2-4-1 3-3 4-5 4s-4-1-5-4c-1 1-2 2-2 4z"/></svg>
-            <span><span id="streakNum">12</span> <span id="streakLbl">DAYS</span></span>
+        <!-- Fixed header -->
+        <div class="homeHeader">
+          <div class="topBar">
+            <button class="iconBtn" id="menuBtn" title="Settings">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="18" r="1"/></svg>
+            </button>
+            <div class="streakChip">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2s4 4 4 8-2 6-4 6-4-2-4-6 4-8 4-8z"/><path d="M5 16c0 4 3 6 7 6s7-2 7-6c0-2-1-3-2-4-1 3-3 4-5 4s-4-1-5-4c-1 1-2 2-2 4z"/></svg>
+              <span><span id="streakNum">12</span> <span id="streakLbl">DAYS</span></span>
+            </div>
+          </div>
+
+          <div class="dateBlock" style="margin-top:8px">
+            <div class="weekday" id="weekday">TUE</div>
+            <div class="dateline" id="dateline">MAY · 05</div>
+          </div>
+
+          <div class="aiInsight">
+            <div class="aiDot"></div>
+            <div class="aiText" id="aiInsightText"></div>
           </div>
         </div>
 
-        <div class="dateBlock" style="margin-top:8px">
-          <div class="weekday" id="weekday">TUE</div>
-          <div class="dateline" id="dateline">MAY · 05</div>
+        <!-- Scrollable middle: habit list -->
+        <div class="habitsScroll">
+          <div class="habits" id="habits"></div>
         </div>
 
-        <div class="aiInsight">
-          <div class="aiDot"></div>
-          <div class="aiText" id="aiInsightText"></div>
+        <!-- Fixed footer -->
+        <div class="homeFooter">
+          <div id="yearChartContainer"></div>
+          <button class="calendarLink" id="openCalendar">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            <span id="calendarLinkLbl">CALENDAR</span>
+          </button>
         </div>
-
-        <div class="habits" id="habits"></div>
-
-        <button class="calendarLink" id="openCalendar">
-          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-          <span id="calendarLinkLbl">CALENDAR</span>
-        </button>
       </div>
     </div>
 
@@ -1878,19 +1913,19 @@ function renderHome() {
     });
     habitsEl.appendChild(row);
   });
-  // monthly daily heatmap (the "stacking" visual — clear & readable)
-  const yearWrap = document.createElement('div');
-  yearWrap.className = 'yearWrap';
-  yearWrap.innerHTML = `
-    <div class="yearLbl">
-      <span id="monthChartLbl"></span>
-      <span id="monthChartRight" style="font-family:'JetBrains Mono',monospace;color:var(--text-3)"></span>
+  // monthly daily heatmap — render to fixed footer container (NOT inside scrollable habits)
+  const yearContainer = document.getElementById('yearChartContainer');
+  yearContainer.innerHTML = `
+    <div class="yearWrap">
+      <div class="yearLbl">
+        <span id="monthChartLbl"></span>
+        <span id="monthChartRight" style="font-family:'JetBrains Mono',monospace;color:var(--text-3)"></span>
+      </div>
+      <div class="monthHeat" id="monthChart"></div>
+      <div class="heatLegend" id="heatLegend"></div>
+      <div class="accumLine" id="accumLineEl"></div>
     </div>
-    <div class="monthHeat" id="monthChart"></div>
-    <div class="heatLegend" id="heatLegend"></div>
-    <div class="accumLine" id="accumLineEl"></div>
   `;
-  habitsEl.appendChild(yearWrap);
   renderMonthChart();
   // labels
   document.getElementById('calendarLinkLbl').textContent = t.calendar;
