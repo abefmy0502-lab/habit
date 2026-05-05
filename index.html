@@ -1,0 +1,2980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>Habit</title>
+<!-- PWA / iOS Add-to-Home-Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Habit">
+<meta name="theme-color" content="#050505">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23050505'/%3E%3Ccircle cx='90' cy='90' r='32' fill='none' stroke='%23C8FF3D' stroke-width='10'/%3E%3Cpolyline points='75 91 86 102 107 79' stroke='%23C8FF3D' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #050505;
+    --surface: #0E0E0E;
+    --surface-2: #141414;
+    --line: #181818;
+    --line-strong: #242424;
+    --text: #FAFAFA;
+    --text-2: #888;
+    --text-3: #4A4A4A;
+    --text-4: #2C2C2C;
+    --accent: #C8FF3D;
+    --accent-soft: rgba(200,255,61,0.08);
+    --danger: #FF4D4D;
+  }
+  html, body {
+    background: #1a1a1a;
+    color: var(--text);
+    font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(200,255,61,0.05), transparent 60%),
+      #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+    gap: 24px;
+  }
+  .pageHeader {
+    text-align: center;
+    color: var(--text-2);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pageHeader b { color: var(--text); font-weight: 600; }
+  .pageHeader em { font-style: normal; color: var(--accent); }
+
+  /* Phone frame */
+  .phone {
+    position: relative;
+    width: 393px;
+    height: 852px;
+    background: #000;
+    border-radius: 54px;
+    border: 1px solid #232323;
+    box-shadow:
+      0 60px 120px rgba(0,0,0,0.6),
+      0 0 0 9px #0a0a0a,
+      0 0 0 10px #2a2a2a;
+    overflow: hidden;
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    width: 124px; height: 36px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 90;
+  }
+  .screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .statusBar {
+    height: 54px;
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 32px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    z-index: 5;
+  }
+  .statusBar .icons { display: flex; gap: 6px; align-items: center; }
+  .statusBar svg { width: 16px; height: 11px; fill: var(--text); }
+
+  .homeIndicator {
+    position: absolute;
+    bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 134px; height: 5px;
+    background: #fff;
+    border-radius: 999px;
+    opacity: 0.85;
+    z-index: 100;
+  }
+
+  .content {
+    flex: 1 1 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ===== HOME — 3-section layout (header / scrollable list / footer) ===== */
+  .home {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .homeHeader {
+    flex: 0 0 auto;
+    padding: 0 32px;
+  }
+  .habitsScroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0 32px;
+    scrollbar-width: none;
+    /* subtle fade at top + bottom edges to hint scrollability */
+    mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  }
+  .habitsScroll::-webkit-scrollbar { display: none; }
+  .homeFooter {
+    flex: 0 0 auto;
+    padding: 0 32px 16px;
+  }
+  .topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    margin-bottom: 56px;
+  }
+  .iconBtn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    transition: all .15s;
+  }
+  .iconBtn:hover { background: var(--surface-2); border-color: var(--text-3); }
+  .iconBtn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+  .streakChip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(200,255,61,0.25);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .streakChip::after {
+    content: "";
+    position: absolute;
+    inset: -50%;
+    background: radial-gradient(circle, rgba(200,255,61,0.12), transparent 65%);
+    pointer-events: none;
+    animation: ambientGlow 4s ease-in-out infinite;
+  }
+  @keyframes ambientGlow {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(1.15); }
+  }
+
+  /* AI Daily Insight — top of habit list */
+  .aiInsight {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 0 16px;
+    margin-top: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 4px;
+  }
+  .aiDot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-top: 7px;
+    box-shadow: 0 0 10px var(--accent);
+    flex: 0 0 auto;
+    animation: aiPulse 2.6s ease-in-out infinite;
+  }
+  @keyframes aiPulse {
+    0%, 100% { opacity: 0.5; transform: scale(0.85); }
+    50%      { opacity: 1; transform: scale(1.18); }
+  }
+  .aiText {
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.55;
+    letter-spacing: -0.005em;
+  }
+  body.lang-ja .aiText { font-family: 'Noto Sans JP', sans-serif; line-height: 1.7; }
+  .aiText em {
+    color: var(--text);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .dateBlock { margin-bottom: 28px; }
+  .weekday {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    color: var(--text-2);
+    margin-bottom: 4px;
+  }
+  body.lang-ja .weekday { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.14em; }
+  .dateline {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+    font-feature-settings: "ss01";
+  }
+  body.lang-ja .dateline { font-family: 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; }
+
+  /* habit rows */
+  .habits { display: flex; flex-direction: column; }
+  .habitRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .habitRow:first-child { border-top: 1px solid var(--line); }
+  .habitRow:active { opacity: 0.7; }
+  .habitRow .em {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+    flex: 0 0 auto;
+    cursor: pointer;
+    transition: transform .18s;
+  }
+  .habitRow .em:hover { transform: scale(1.18); }
+  .habitRow.ck-pulse {
+    animation: rowPulse .55s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes rowPulse {
+    0%   { background: transparent; }
+    20%  { background: rgba(200,255,61,0.10); }
+    100% { background: transparent; }
+  }
+  .habitRow .nm {
+    flex: 1; min-width: 0;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color .2s;
+  }
+  .habitRow.done .nm { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-3); text-decoration-thickness: 1px; }
+  .habitRow .check {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-4);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .25s cubic-bezier(.2,.8,.3,1);
+    flex: 0 0 auto;
+    cursor: pointer;
+  }
+  .habitRow .check svg { width: 13px; height: 13px; stroke: #000; stroke-width: 3.5; fill: none; opacity: 0; transition: opacity .18s; }
+  .habitRow.done .check {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.05);
+    box-shadow: 0 0 16px rgba(200,255,61,0.4);
+  }
+  .habitRow.done .check svg { opacity: 1; }
+  .habitRow .check.ck-pop { animation: checkPop .4s cubic-bezier(.4, 1.4, .5, 1); }
+  @keyframes checkPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.32); }
+    100% { transform: scale(1.05); }
+  }
+
+  /* 5-day rolling accumulation strip — inline */
+  .strip {
+    display: flex;
+    gap: 4px;
+    flex: 0 0 auto;
+  }
+  .strip .cell {
+    width: 12px; height: 16px;
+    background: #161616;
+    border-radius: 3px;
+    transition: background .25s;
+  }
+  .strip .cell.done {
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(200,255,61,0.32);
+  }
+  .strip .cell.today {
+    outline: 1px solid var(--text-2);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  .strip .cell.today.done { outline-color: var(--accent); }
+  .strip .cell.weekend:not(.done) { background: #1c1c1c; }
+
+  /* monthly daily heatmap — the "stacking" visual */
+  .yearWrap {
+    margin: 0;
+    padding: 14px 0 4px;
+    border-top: 1px solid var(--line);
+  }
+  .yearLbl {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  body.lang-ja .yearLbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+  .monthHeat {
+    display: grid;
+    grid-template-columns: repeat(31, 1fr);
+    gap: 3px;
+  }
+  .monthHeat .day {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    cursor: pointer;
+    background: #141414;
+    transition: all .2s;
+  }
+  .monthHeat .day.lvl1 { background: rgba(200,255,61,0.18); }
+  .monthHeat .day.lvl2 { background: rgba(200,255,61,0.40); }
+  .monthHeat .day.lvl3 { background: rgba(200,255,61,0.65); }
+  .monthHeat .day.lvl4 {
+    background: var(--accent);
+    box-shadow: 0 0 6px rgba(200,255,61,0.35);
+  }
+  .monthHeat .day.future { background: transparent; outline: 1px dashed #1a1a1a; outline-offset: -1px; }
+  .monthHeat .day.today {
+    outline: 1.5px solid var(--text-2);
+    outline-offset: 2px;
+  }
+  .monthHeat .day.today.lvl4 { outline-color: var(--accent); }
+  .monthHeat .day:hover { transform: scale(1.15); }
+  .monthHeat .day.flash {
+    animation: cellFlash .55s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes cellFlash {
+    0%   { transform: scale(1); box-shadow: none; }
+    40%  { transform: scale(1.45); box-shadow: 0 0 20px rgba(200,255,61,0.6); }
+    100% { transform: scale(1); }
+  }
+  .heatLegend {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-4);
+    letter-spacing: 0.08em;
+  }
+  .heatLegend .scale { display: flex; align-items: center; gap: 3px; }
+  .heatLegend .swatch { width: 9px; height: 9px; border-radius: 2px; }
+
+  /* counters below the chart */
+  .accumLine {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  body.lang-ja .accumLine { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+  .accumLine b {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    margin-right: 4px;
+    font-feature-settings: "tnum";
+  }
+  .accumLine .right b { color: var(--accent); }
+
+  .calendarLink {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin: 12px auto 0;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 12px;
+    transition: color .2s;
+  }
+  body.lang-ja .calendarLink { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.08em; }
+  .calendarLink:hover { color: var(--text); }
+  .calendarLink svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+
+  .emptyHome {
+    color: var(--text-3);
+    font-size: 14px;
+    text-align: center;
+    padding: 40px 20px;
+    line-height: 1.7;
+  }
+  .emptyHome .add {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 12px 22px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+
+  /* ===== Overlay panels ===== */
+  .panel {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    z-index: 70;
+    display: none;
+    flex-direction: column;
+    animation: slideUp .28s cubic-bezier(.2,.8,.3,1);
+  }
+  .panel.show { display: flex; }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .panelHead {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 64px 24px 22px;
+    flex: 0 0 auto;
+  }
+  .panelTitle {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .panelSub {
+    color: var(--text-3);
+    font-size: 12px;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  body.lang-ja .panelSub { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+  .panelBody {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0 24px 100px;
+    scrollbar-width: none;
+  }
+  .panelBody::-webkit-scrollbar { display: none; }
+
+  .closeBtn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .closeBtn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+  /* ===== Calendar panel ===== */
+  .calNav {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }
+  .calNav .navTtl { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .calNav .navBtns { display: flex; gap: 8px; }
+
+  .heatGrid {
+    display: grid;
+    grid-template-columns: 110px repeat(31, 1fr);
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .heatGrid::-webkit-scrollbar { display: none; }
+  .heatHabit {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    padding: 6px 6px;
+    align-self: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .heatDay {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    text-align: center;
+    padding: 4px 0;
+  }
+  .heatDay.we { color: var(--accent-soft); }
+  .heatCell {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    background: #101010;
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .heatCell:hover { transform: scale(1.18); }
+  .heatCell.done { background: var(--accent); }
+  .heatCell.future { background: #0a0a0a; }
+
+  .monthSummary {
+    margin-top: 28px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: var(--text-2);
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .monthSummary .v {
+    font-size: 36px; font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    font-feature-settings: "tnum";
+  }
+  .monthSummary .v small {
+    font-size: 16px; color: var(--text-3); font-weight: 500;
+  }
+  .monthSummary .lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  body.lang-ja .monthSummary .lbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+
+  /* ===== Settings panel ===== */
+  .settGroup {
+    margin-bottom: 40px;
+  }
+  .settGroupTtl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  body.lang-ja .settGroupTtl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+
+  .habitMgr {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .habitMgr:last-of-type { border-bottom: none; }
+  .habitMgr .em { font-size: 18px; width: 22px; text-align: center; flex: 0 0 auto; }
+  .habitMgr .info { flex: 1; min-width: 0; }
+  .habitMgr .nm { font-size: 15px; font-weight: 500; }
+  .habitMgr .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    margin-top: 4px;
+    letter-spacing: 0.06em;
+  }
+  body.lang-ja .habitMgr .meta { font-family: 'Noto Sans JP', sans-serif; }
+  .habitMgr .arrow {
+    color: var(--text-3);
+    font-size: 16px;
+    flex: 0 0 auto;
+  }
+
+  .addHabitBtn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%;
+    margin-top: 18px;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .addHabitBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(200,255,61,0.2); }
+  .addHabitBtn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+  .addHabitBtn .ai {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(0,0,0,0.18);
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-left: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  /* lang toggle */
+  .langSeg {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .langSeg button {
+    background: transparent;
+    border: none;
+    color: var(--text-2);
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    transition: all .15s;
+  }
+  .langSeg button.on { background: var(--text); color: #000; }
+
+  /* ===== AI Coach modal ===== */
+  .ai {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    z-index: 80;
+    display: none;
+    flex-direction: column;
+    animation: slideUp .28s cubic-bezier(.2,.8,.3,1);
+  }
+  .ai.show { display: flex; }
+  .aiHead {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 64px 24px 0;
+    flex: 0 0 auto;
+  }
+  .stepDots {
+    display: flex; gap: 6px;
+  }
+  .stepDots span {
+    width: 18px; height: 3px;
+    background: var(--line-strong);
+    border-radius: 999px;
+    transition: background .2s;
+  }
+  .stepDots span.on { background: var(--accent); }
+  .aiBody {
+    flex: 1 1 auto;
+    padding: 32px 28px 24px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+  }
+  .aiBody::-webkit-scrollbar { display: none; }
+  .aiTalker {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  body.lang-ja .aiTalker { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+  .aiTalker .pulse {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  .aiQ {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  body.lang-ja .aiQ { font-family: 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; }
+  .aiHint {
+    color: var(--text-3);
+    font-size: 13px;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid var(--line-strong);
+    color: var(--text);
+    padding: 14px 0;
+    font-size: 22px;
+    font-family: inherit;
+    font-weight: 500;
+    outline: none;
+    letter-spacing: -0.01em;
+    transition: border-color .15s;
+  }
+  .input:focus { border-color: var(--accent); }
+  .input::placeholder { color: var(--text-4); }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 16px;
+  }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { border-color: var(--text-3); }
+  .chip.on { background: var(--accent); color: #000; border-color: var(--accent); }
+  .chip.small {
+    padding: 6px 12px;
+    font-size: 12px;
+    background: transparent;
+    color: var(--text-3);
+    border-color: var(--line);
+  }
+  .chip.small:hover { color: var(--text-2); }
+
+  .emojiPick {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin-top: 22px;
+    background: var(--surface);
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    max-height: 168px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .emojiPick div {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all .15s;
+  }
+  .emojiPick div:hover { background: var(--surface-2); }
+  .emojiPick div.sel { background: rgba(200,255,61,0.12); border-color: var(--accent); }
+
+  .freqChips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .freqC {
+    background: var(--surface);
+    border: 1.5px solid var(--line-strong);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 14px 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .freqC:hover { border-color: var(--text-3); }
+  .freqC.sel {
+    background: rgba(200,255,61,0.08);
+    border-color: var(--accent);
+  }
+  .freqC b {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .freqC.sel b { color: var(--accent); }
+  .freqC small {
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  body.lang-ja .freqC b,
+  body.lang-ja .freqC small { font-family: 'Noto Sans JP', sans-serif; }
+  .dowChips {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .dowC {
+    background: var(--surface);
+    border: 1.5px solid var(--line-strong);
+    color: var(--text-2);
+    border-radius: 10px;
+    padding: 10px 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: 0.02em;
+  }
+  body.lang-ja .dowC { font-family: 'Noto Sans JP', sans-serif; }
+  .dowC:hover { border-color: var(--text-3); color: var(--text); }
+  .dowC.sel {
+    background: rgba(200,255,61,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .dowC.weekend { color: var(--text-3); }
+  .dowC.holiday { color: rgba(255,77,77,0.8); }
+  .schedHintText {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    text-align: center;
+  }
+  body.lang-ja .schedHintText { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+
+  /* AI generated intention card */
+  .intentCard {
+    margin-top: 22px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(200,255,61,0.06), transparent);
+    border: 1px solid rgba(200,255,61,0.25);
+    border-radius: 16px;
+  }
+  .intentLbl {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  body.lang-ja .intentLbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+  .intentText {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+    color: var(--text);
+    min-height: 54px;
+    white-space: pre-line;
+  }
+  body.lang-ja .intentText { font-family: 'Noto Sans JP', sans-serif; line-height: 1.7; }
+
+  .aiFoot {
+    flex: 0 0 auto;
+    padding: 16px 28px 24px;
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    padding: 16px;
+    border-radius: 999px;
+    border: none;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { box-shadow: 0 8px 22px rgba(200,255,61,0.22); transform: translateY(-1px); }
+  .btn-primary:disabled { background: var(--text-4); color: var(--text-3); cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line-strong);
+    flex: 0 0 auto;
+    padding: 16px 22px;
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text-3); }
+  .btn-danger-text {
+    background: transparent;
+    color: var(--danger);
+    border: none;
+    padding: 12px;
+    width: 100%;
+    margin-top: 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  /* footer links (Calendar + Stats) */
+  .footerLinks {
+    display: flex;
+    gap: 4px;
+    margin: 8px auto 0;
+    justify-content: center;
+  }
+  .footerLinks .calendarLink {
+    margin: 0;
+    padding: 12px 18px;
+  }
+
+  /* ===== Stats panel ===== */
+  .statHero {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 6px 0 22px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+  .statHeroV {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--text);
+    font-feature-settings: "tnum";
+  }
+  .statHeroLbl {
+    color: var(--text-3);
+    font-size: 10px;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  body.lang-ja .statHeroLbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+
+  .statSection { margin-bottom: 32px; }
+  .statSectionTtl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  body.lang-ja .statSectionTtl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+
+  /* week rings */
+  .weekRings {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .dayRingWrap {
+    text-align: center;
+  }
+  .dayRing {
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 44px;
+    margin: 0 auto;
+  }
+  .dayRing circle.bg { fill: none; stroke: var(--line-strong); stroke-width: 4; }
+  .dayRing circle.fg {
+    fill: none; stroke: var(--accent); stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset .5s cubic-bezier(.25,.8,.3,1);
+  }
+  .dayRing.today circle.fg { filter: drop-shadow(0 0 6px rgba(200,255,61,0.45)); }
+  .dayRing.future circle.bg { stroke: #161616; stroke-dasharray: 2 3; }
+  .dayRing.future circle.fg { display: none; }
+  .dayRing text {
+    fill: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .dayRing.future text { fill: var(--text-4); }
+  .dayRingLbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--text-3);
+    margin-top: 6px;
+  }
+  body.lang-ja .dayRingLbl { font-family: 'Noto Sans JP', sans-serif; }
+  .dayRingWrap.today .dayRingLbl { color: var(--accent); font-weight: 700; }
+  .dayRingWrap.weekend .dayRingLbl { color: var(--text-4); }
+
+  /* habit ranking */
+  .rankRow {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    column-gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .rankRow:last-child { border-bottom: none; }
+  .rankRow .em { font-size: 18px; text-align: center; }
+  .rankRow .info { min-width: 0; }
+  .rankRow .nm {
+    font-size: 14px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+  .rankBar {
+    height: 5px;
+    background: #141414;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .rankBar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width .5s cubic-bezier(.25,.8,.3,1);
+  }
+  .rankBar.weak > span { background: rgba(200,255,61,0.4); }
+  .rankBar.danger > span { background: var(--danger); opacity: 0.6; }
+  .rankPct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    min-width: 42px;
+    text-align: right;
+    font-feature-settings: "tnum";
+  }
+  .rankCount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    margin-left: 4px;
+    font-weight: 500;
+  }
+  .rankBadge {
+    display: inline-block;
+    background: rgba(200,255,61,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(200,255,61,0.3);
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    margin-left: 8px;
+    letter-spacing: 0.06em;
+  }
+  .rankBadge.danger {
+    background: rgba(255,77,77,0.1);
+    color: var(--danger);
+    border-color: rgba(255,77,77,0.35);
+  }
+
+  /* habit detail panel */
+  .hdHero {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 24px;
+  }
+  .hdHero .em {
+    font-size: 32px;
+    width: 56px; height: 56px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .hdHero .nm {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .hdHero .freq {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  body.lang-ja .hdHero .freq { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+  .intentBox {
+    margin-top: 6px;
+    padding: 18px 20px;
+    background: linear-gradient(180deg, rgba(200,255,61,0.06), transparent);
+    border: 1px solid rgba(200,255,61,0.22);
+    border-radius: 16px;
+  }
+  .intentBoxLbl {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  body.lang-ja .intentBoxLbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+  .intentBoxLbl::before {
+    content: ""; width: 6px; height: 6px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .intentBoxText {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.55;
+    color: var(--text);
+    white-space: pre-line;
+    letter-spacing: -0.005em;
+  }
+  body.lang-ja .intentBoxText { font-family: 'Noto Sans JP', sans-serif; line-height: 1.7; }
+
+  .hdStats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .hdStat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .hdStat b {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    line-height: 1;
+    font-feature-settings: "tnum";
+  }
+  .hdStat b small {
+    font-size: 14px;
+    color: var(--text-3);
+    font-weight: 500;
+    margin-left: 2px;
+  }
+  .hdStat span {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  body.lang-ja .hdStat span { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+
+  .hdMonthLbl {
+    margin-top: 26px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  body.lang-ja .hdMonthLbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.06em; }
+  .hdGrid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    gap: 4px;
+  }
+  .hdGrid .c {
+    aspect-ratio: 1;
+    background: #141414;
+    border-radius: 3px;
+  }
+  .hdGrid .c.done {
+    background: var(--accent);
+    box-shadow: 0 0 6px rgba(200,255,61,0.3);
+  }
+  .hdGrid .c.future { background: transparent; outline: 1px dashed #1a1a1a; outline-offset: -1px; }
+  .hdGrid .c.today { outline: 1.5px solid var(--text-2); outline-offset: 2px; }
+  .hdGrid .c.today.done { outline-color: var(--accent); }
+
+  .hdActions {
+    display: flex; gap: 8px;
+    margin-top: 28px;
+  }
+  .hdActions .btn { flex: 1; }
+
+  /* edit habit modal (simpler) */
+  .editModal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 85;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .editModal.show { display: flex; }
+  .editSheet {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-bottom: none;
+    border-radius: 28px 28px 0 0;
+    padding: 18px 24px 28px;
+    max-height: 86%;
+    overflow-y: auto;
+    animation: sheetUp .28s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .grip {
+    width: 38px; height: 4px;
+    background: #2c2c2c;
+    border-radius: 999px;
+    margin: 0 auto 18px;
+  }
+  .editSheet h3 { font-size: 18px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.01em; }
+  .editLbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin: 14px 0 8px;
+  }
+  body.lang-ja .editLbl { font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.04em; }
+
+  .footHint {
+    color: var(--text-3);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  /* ===== Mobile (≤600px) — full-screen, no phone frame ===== */
+  @media (max-width: 600px), (display-mode: standalone) {
+    body {
+      background: var(--bg);
+      padding: 0;
+      gap: 0;
+      min-height: 100dvh;
+      overflow: hidden;
+    }
+    .pageHeader, .footHint { display: none; }
+    .phone {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
+    .phone::before { display: none; }
+    .statusBar { display: none; }
+    .homeIndicator { display: none; }
+    .homeHeader { padding-top: env(safe-area-inset-top, 12px); }
+    .homeFooter { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }
+    .panelHead { padding-top: calc(env(safe-area-inset-top, 12px) + 28px); }
+    .aiHead { padding-top: calc(env(safe-area-inset-top, 12px) + 28px); }
+    .panelBody { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); }
+  }
+  @media (display-mode: standalone) {
+    /* When launched from home screen */
+    body { background: var(--bg); }
+  }
+</style>
+</head>
+<body class="lang-en">
+
+<div class="pageHeader">
+  <b>HABIT</b> · v3 · <em>SIMPLIFIED + AI COACH</em> · INTERACTIVE
+</div>
+
+<div class="phone">
+  <div class="screen">
+    <!-- status bar -->
+    <div class="statusBar">
+      <span>9:41</span>
+      <div class="icons">
+        <svg viewBox="0 0 18 12"><path d="M1 7h2v4H1zM5 5h2v6H5zM9 3h2v8H9zM13 1h2v10h-2z"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M9 1.5C5 1.5 1.7 3 0 5l1.5 1.5C2.8 5 5.7 3.8 9 3.8s6.2 1.2 7.5 2.7L18 5C16.3 3 13 1.5 9 1.5zm0 4C6.4 5.5 4.1 6.4 3 7.5l1.5 1.5C5.4 8.1 7.1 7.5 9 7.5s3.6.6 4.5 1.5L15 7.5C13.9 6.4 11.6 5.5 9 5.5zm0 4c-1.4 0-2.7.5-3.5 1.2l1.5 1.5C7.5 11.7 8.2 11.5 9 11.5s1.5.2 2 .7l1.5-1.5C11.7 10 10.4 9.5 9 9.5z"/></svg>
+        <svg viewBox="0 0 26 12" style="width:24px"><rect x="0.5" y="0.5" width="22" height="11" rx="2.5" stroke="#fff" fill="none"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="#fff"/><rect x="23" y="4" width="2" height="4" fill="#fff" opacity="0.5"/></svg>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div class="content">
+      <div class="home">
+        <!-- Fixed header -->
+        <div class="homeHeader">
+          <div class="topBar">
+            <button class="iconBtn" id="menuBtn" title="Settings">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="18" r="1"/></svg>
+            </button>
+            <div class="streakChip">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2s4 4 4 8-2 6-4 6-4-2-4-6 4-8 4-8z"/><path d="M5 16c0 4 3 6 7 6s7-2 7-6c0-2-1-3-2-4-1 3-3 4-5 4s-4-1-5-4c-1 1-2 2-2 4z"/></svg>
+              <span><span id="streakNum">12</span> <span id="streakLbl">DAYS</span></span>
+            </div>
+          </div>
+
+          <div class="dateBlock" style="margin-top:8px">
+            <div class="weekday" id="weekday">TUE</div>
+            <div class="dateline" id="dateline">MAY · 05</div>
+          </div>
+
+          <div class="aiInsight">
+            <div class="aiDot"></div>
+            <div class="aiText" id="aiInsightText"></div>
+          </div>
+        </div>
+
+        <!-- Scrollable middle: habit list -->
+        <div class="habitsScroll">
+          <div class="habits" id="habits"></div>
+        </div>
+
+        <!-- Fixed footer -->
+        <div class="homeFooter">
+          <div id="yearChartContainer"></div>
+          <div class="footerLinks">
+            <button class="calendarLink" id="openCalendar">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+              <span id="calendarLinkLbl">CALENDAR</span>
+            </button>
+            <button class="calendarLink" id="openStats">
+              <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-6M22 20H2"/></svg>
+              <span id="statsLinkLbl">STATS</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Calendar panel ===== -->
+    <div class="panel" id="calendarPanel">
+      <div class="panelHead">
+        <div>
+          <div class="panelTitle" id="calBigTitle">May 2026</div>
+          <div class="panelSub" id="calBigSub">CALENDAR · TAP TO TOGGLE</div>
+        </div>
+        <button class="closeBtn" data-close="calendarPanel">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+      </div>
+      <div class="panelBody">
+        <div class="calNav">
+          <div class="navTtl" id="calNavTtl">May 2026</div>
+          <div class="navBtns">
+            <button class="iconBtn" id="prevMonth"><svg viewBox="0 0 24 24"><polyline points="15 6 9 12 15 18"/></svg></button>
+            <button class="iconBtn" id="nextMonth"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></button>
+          </div>
+        </div>
+        <div class="heatGrid" id="heatGrid"></div>
+        <div class="monthSummary">
+          <div>
+            <div class="v" id="monthDoneV">0<small>/0</small></div>
+            <div class="lbl" id="monthDoneLbl">DONE THIS MONTH</div>
+          </div>
+          <div style="text-align:right">
+            <div class="v" id="monthPctV">0<small>%</small></div>
+            <div class="lbl" id="monthPctLbl">OF TARGET</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Stats panel ===== -->
+    <div class="panel" id="statsPanel">
+      <div class="panelHead">
+        <div>
+          <div class="panelTitle" id="statsTitle">Stats</div>
+          <div class="panelSub" id="statsSub">THIS WEEK · THIS MONTH · ALL HABITS</div>
+        </div>
+        <button class="closeBtn" data-close="statsPanel">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+      </div>
+      <div class="panelBody">
+        <!-- Highlights -->
+        <div class="statHero">
+          <div>
+            <div class="statHeroV" id="statHeroDone">0</div>
+            <div class="statHeroLbl" id="statHeroDoneLbl">STACKED · MAY</div>
+          </div>
+          <div style="text-align:right">
+            <div class="statHeroV" id="statHeroPct">0<span style="font-size:24px;color:var(--text-3)">%</span></div>
+            <div class="statHeroLbl" id="statHeroPctLbl">OF TARGET</div>
+          </div>
+        </div>
+
+        <!-- Per-day rings — this week -->
+        <div class="statSection">
+          <div class="statSectionTtl" id="statWeekLbl">THIS WEEK</div>
+          <div class="weekRings" id="weekRings"></div>
+        </div>
+
+        <!-- Per-habit performance ranking -->
+        <div class="statSection">
+          <div class="statSectionTtl" id="statHabitsLbl">PER HABIT · THIS MONTH</div>
+          <div id="habitRanking"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Habit Detail panel ===== -->
+    <div class="panel" id="habitDetailPanel">
+      <div class="panelHead">
+        <div>
+          <div class="panelSub" id="hdPanelSub">YOUR COMMITMENT</div>
+          <div class="panelTitle" id="hdPanelTitle">Habit</div>
+        </div>
+        <button class="closeBtn" data-close="habitDetailPanel">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+      </div>
+      <div class="panelBody">
+        <div class="hdHero">
+          <div class="em" id="hdEmoji">⏰</div>
+          <div>
+            <div class="nm" id="hdName">Habit</div>
+            <div class="freq" id="hdFreq">Daily</div>
+          </div>
+        </div>
+
+        <div class="intentBox">
+          <div class="intentBoxLbl" id="hdIntentLbl">YOUR COMMITMENT</div>
+          <div class="intentBoxText" id="hdIntent">—</div>
+        </div>
+
+        <div class="hdStats">
+          <div class="hdStat">
+            <b id="hdStreak">0</b>
+            <span id="hdStreakLbl">STREAK</span>
+          </div>
+          <div class="hdStat">
+            <b id="hdMonth">0</b>
+            <span id="hdMonthSubLbl">THIS MONTH</span>
+          </div>
+          <div class="hdStat">
+            <b id="hdRate">0<small>%</small></b>
+            <span id="hdRateLbl">RATE</span>
+          </div>
+        </div>
+
+        <div class="hdMonthLbl" id="hdLast30Lbl">LAST 30 DAYS</div>
+        <div class="hdGrid" id="hdGrid"></div>
+
+        <div class="hdActions">
+          <button class="btn btn-secondary" id="hdEditBtn">EDIT</button>
+          <button class="btn btn-primary" id="hdToggleBtn">MARK TODAY</button>
+        </div>
+        <button class="btn-danger-text" id="hdDeleteBtn">DELETE HABIT</button>
+      </div>
+    </div>
+
+    <!-- ===== Settings panel ===== -->
+    <div class="panel" id="settingsPanel">
+      <div class="panelHead">
+        <div>
+          <div class="panelTitle" id="settTitle">Settings</div>
+          <div class="panelSub" id="settSub">CONFIGURE YOUR PRACTICE</div>
+        </div>
+        <button class="closeBtn" data-close="settingsPanel">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+      </div>
+      <div class="panelBody">
+        <div class="settGroup">
+          <div class="settGroupTtl" id="settHabitsTtl">HABITS</div>
+          <div id="habitMgr"></div>
+          <button class="addHabitBtn" id="addHabitBtn">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="addHabitLbl">NEW HABIT</span>
+            <span class="ai">AI</span>
+          </button>
+        </div>
+
+        <div class="settGroup">
+          <div class="settGroupTtl" id="settLangTtl">LANGUAGE</div>
+          <div class="langSeg">
+            <button data-lang="en" class="on">EN</button>
+            <button data-lang="ja">日本語</button>
+          </div>
+        </div>
+
+        <div class="settGroup">
+          <div class="settGroupTtl" id="settCarryTtl">NEXT MONTH</div>
+          <button class="addHabitBtn" id="planNextBtn" style="background:transparent;color:var(--accent);border:1px solid rgba(200,255,61,0.3)">
+            <span id="planNextLbl">CARRY OVER TO NEXT MONTH</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AI Coach modal ===== -->
+    <div class="ai" id="aiCoach">
+      <div class="aiHead">
+        <button class="closeBtn" id="aiClose">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+        <div class="stepDots" id="stepDots">
+          <span class="on"></span><span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <div class="aiBody" id="aiBody">
+        <!-- step 1: name -->
+        <div class="aiStep" id="aiStep1">
+          <div class="aiQ" id="ai1Q">What habit do you want to build?</div>
+          <div class="aiHint" id="ai1Hint">A clear name — short verb-first phrase works best.</div>
+          <input class="input" id="ai1Input" type="text" maxlength="60" />
+          <div class="chips" id="ai1Examples"></div>
+        </div>
+
+        <!-- step 2: emoji -->
+        <div class="aiStep" id="aiStep2" style="display:none">
+          <div class="aiQ" id="ai2Q">Pick an icon.</div>
+          <div class="aiHint" id="ai2Hint">A symbol your eye can find in 0.2 seconds.</div>
+          <div class="emojiPick" id="emojiPick"></div>
+        </div>
+
+        <!-- step 3: when (implementation intention trigger) -->
+        <div class="aiStep" id="aiStep3" style="display:none">
+          <div class="aiQ" id="ai3Q">When will this happen?</div>
+          <div class="aiHint" id="ai3Hint">Research: anchoring a habit to a fixed time or an existing routine triples follow-through.</div>
+          <div class="chips" id="whenChips"></div>
+          <input class="input" id="whenCustom" type="text" placeholder="after morning coffee…" style="margin-top:18px;display:none" />
+        </div>
+
+        <!-- step 4: minimum + frequency + intention review -->
+        <div class="aiStep" id="aiStep4" style="display:none">
+          <div class="aiQ" id="ai4Q">If today goes sideways, the smallest version is…</div>
+          <div class="aiHint" id="ai4Hint">"Two-minute rule" — a habit must survive your worst day.</div>
+          <input class="input" id="minInput" type="text" maxlength="60" />
+          <div class="chips" id="minExamples"></div>
+
+          <div style="margin-top:30px">
+            <div class="aiTalker" style="margin-bottom:10px"><span id="ai4FreqLbl">WHEN DOES THIS HAPPEN</span></div>
+            <div class="freqChips" id="aiFreq"></div>
+            <div class="dowChips" id="aiDow" style="display:none"></div>
+            <div class="schedHintText" id="aiSchedHint"></div>
+          </div>
+
+          <div class="intentCard">
+            <div class="intentLbl" id="intentLbl">YOUR COMMITMENT</div>
+            <div class="intentText" id="intentText">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="aiFoot">
+        <button class="btn btn-secondary" id="aiBackBtn" style="display:none">←</button>
+        <button class="btn btn-primary" id="aiNextBtn">CONTINUE</button>
+      </div>
+    </div>
+
+    <!-- ===== Edit habit modal (lighter) ===== -->
+    <div class="editModal" id="editModal">
+      <div class="editSheet">
+        <div class="grip"></div>
+        <h3 id="editTitle">Edit Habit</h3>
+
+        <div class="editLbl" id="editIconLbl">ICON</div>
+        <div class="emojiPick" id="editEmojiPick"></div>
+
+        <div class="editLbl" id="editNameLbl">NAME</div>
+        <input class="input" id="editNameInput" type="text" maxlength="60" />
+
+        <div class="editLbl" id="editFreqLbl">FREQUENCY</div>
+        <div class="freqChips" id="editFreq"></div>
+        <div class="dowChips" id="editDow" style="display:none"></div>
+
+        <div class="aiFoot" style="padding:24px 0 0">
+          <button class="btn btn-secondary" id="editCancel">×</button>
+          <button class="btn btn-primary" id="editSave">SAVE</button>
+        </div>
+        <button class="btn-danger-text" id="editDelete">DELETE HABIT</button>
+      </div>
+    </div>
+
+    <div class="homeIndicator"></div>
+  </div>
+</div>
+
+<div class="footHint">⬇ TAP HABIT TO MARK · TAP EMOJI FOR DETAIL · MENU (⋯) FOR SETTINGS · ON IPHONE: SHARE → "ADD TO HOME SCREEN"</div>
+
+<script>
+"use strict";
+
+// ============ I18N ============
+const I18N = {
+  en: {
+    days: ['SUN','MON','TUE','WED','THU','FRI','SAT'],
+    daysLong: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    months: ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],
+    monthsLong: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+    streakDays: 'DAYS',
+    calendar: 'CALENDAR',
+    calendarSub: 'CALENDAR · TAP TO TOGGLE',
+    settings: 'Settings',
+    settingsSub: 'CONFIGURE YOUR PRACTICE',
+    habits: 'HABITS',
+    language: 'LANGUAGE',
+    nextMonth: 'NEXT MONTH',
+    newHabit: 'NEW HABIT',
+    planNextLbl: (m) => `CARRY HABITS TO ${m}`,
+    doneThisMonth: 'DONE THIS MONTH',
+    ofTarget: 'OF TARGET',
+    ai1Q: 'What habit do you want to build?',
+    ai1Hint: 'A short verb-first phrase. "Read 10 pages." not "more reading."',
+    ai1Examples: ['Read 10 pages', 'Run 3 km', 'No SNS until noon', 'Cold shower'],
+    ai1Placeholder: 'e.g. Read 10 pages',
+    ai2Q: 'Pick an icon.',
+    ai2Hint: 'Something your eye finds in 0.2 seconds.',
+    ai3Q: 'When will this happen?',
+    ai3Hint: 'Anchoring to a fixed time or an existing routine roughly triples follow-through (Gollwitzer, 1999).',
+    whenChips: ['Morning', 'Midday', 'Evening', 'Before bed', 'After coffee', 'After work', 'Custom…'],
+    whenCustomPh: 'after [routine I already do]…',
+    ai4Q: 'If today goes sideways, the smallest version is…',
+    ai4Hint: 'A habit must survive your worst day. (Fogg — Tiny Habits)',
+    minPlaceholder: 'e.g. 1 page',
+    minExamples: ['1 page', '3 minutes', '10 reps', '1 sentence'],
+    freqLbl: 'WHEN DOES THIS HAPPEN',
+    freqDaily: 'DAILY',
+    freqWeek: '/ WEEK',
+    schedDaily: 'Every day',
+    schedWeekday: 'Weekdays',
+    schedWeekend: 'Weekends + Holidays',
+    schedCustom: 'Custom days',
+    schedHint: 'Holidays follow the JP national calendar.',
+    pickDays: 'PICK DAYS',
+    intentLbl: 'YOUR COMMITMENT',
+    backBtn: '←',
+    continueBtn: 'CONTINUE',
+    saveBtn: 'CREATE HABIT',
+    editTitle: 'Edit Habit',
+    iconLbl: 'ICON',
+    nameLbl: 'NAME',
+    freqShortLbl: 'FREQUENCY',
+    deleteLbl: 'DELETE HABIT',
+    saveLbl: 'SAVE',
+    identity: {
+      0:    'Day one. Begin.',
+      mid:  'You are building.',
+      med:  'You are someone who shows up.',
+      high: 'Discipline becomes who you are.',
+    },
+    intent: ({name, when, min}) => `When ${when}, I will ${name}.\nOn hard days, even ${min} counts.`,
+    monthName: (y, m) => `${I18N.en.monthsLong[m-1]} ${y}`,
+    monthShort: (y, m) => `${I18N.en.months[m-1]} ${y}`,
+  },
+  ja: {
+    days: ['日','月','火','水','木','金','土'],
+    daysLong: ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'],
+    months: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+    monthsLong: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+    streakDays: '日連続',
+    calendar: 'カレンダー',
+    calendarSub: 'タップで切り替え',
+    settings: '設定',
+    settingsSub: '習慣を整える',
+    habits: '習慣',
+    language: '言語',
+    nextMonth: '翌月の準備',
+    newHabit: '新しい習慣',
+    planNextLbl: (m) => `${m} に引き継ぐ`,
+    doneThisMonth: '今月の達成',
+    ofTarget: '目標比',
+    ai1Q: 'どんな習慣を始めますか？',
+    ai1Hint: '動詞から始まる短いフレーズで。「読書する」より「10ページ読む」のほうが効きます。',
+    ai1Examples: ['10ページ読む', '3km走る', '昼までSNSを見ない', '冷水シャワー'],
+    ai1Placeholder: '例：10ページ読む',
+    ai2Q: 'アイコンを選ぼう。',
+    ai2Hint: 'ひと目で「これだ」と分かるもの。',
+    ai3Q: 'いつやりますか？',
+    ai3Hint: '時間や既存の習慣に紐付けると、実行率が約3倍に上がる ── という研究があります（Gollwitzer, 1999）。',
+    whenChips: ['朝', '昼', '夜', '寝る前', 'コーヒーのあと', '仕事のあと', 'その他…'],
+    whenCustomPh: '例：歯を磨いたあと',
+    ai4Q: 'どうしてもダメな日でも、これだけはやる ── というラインは？',
+    ai4Hint: '習慣は、調子が悪い日でも続けられるサイズにしておく。（BJ Fogg）',
+    minPlaceholder: '例：1ページ',
+    minExamples: ['1ページ', '3分', '10回', '1文'],
+    freqLbl: 'いつやる？',
+    freqDaily: '毎日',
+    freqWeek: '/ 週',
+    schedDaily: '毎日',
+    schedWeekday: '平日',
+    schedWeekend: '土日 + 祝日',
+    schedCustom: '曜日を指定',
+    schedHint: '祝日は日本の国民の祝日に準拠します。',
+    pickDays: '曜日を選ぶ',
+    intentLbl: 'あなたの宣言',
+    backBtn: '←',
+    continueBtn: '次へ',
+    saveBtn: '習慣を作る',
+    editTitle: '習慣を編集',
+    iconLbl: 'アイコン',
+    nameLbl: '名前',
+    freqShortLbl: '頻度',
+    deleteLbl: 'この習慣を削除',
+    saveLbl: '保存',
+    identity: {
+      0:    '今日が1日目。',
+      mid:  '積み重ねている最中。',
+      med:  'やるべきことをやる側の人間。',
+      high: '続けることが、あなた自身になる。',
+    },
+    intent: ({name, when, min}) => `${when}に、${name}。\n調子が悪い日でも、${min} だけはやる。`,
+    monthName: (y, m) => `${y}年${I18N.ja.months[m-1]}`,
+    monthShort: (y, m) => `${y}年${I18N.ja.months[m-1]}`,
+  },
+};
+let lang = 'en';
+const T = () => I18N[lang];
+
+// ============ Date helpers ============
+const TODAY_DAY = 5;
+const TODAY_MONTH = '2026-05';
+let currentMonth = TODAY_MONTH;
+const monthsInitialized = new Set([TODAY_MONTH]);
+const monthSkipList = {};
+
+function shiftMonth(ym, n) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function daysInMonth(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function dowOf(ym, day) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m - 1, day).getDay();
+}
+function ymParts(ym) { const [y, m] = ym.split('-').map(Number); return { y, m }; }
+
+// ============ JP Holidays (2025-2026) ============
+// 国民の祝日 — Cabinet Office of Japan
+const JP_HOLIDAYS = new Set([
+  // 2025
+  '2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20',
+  '2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06',
+  '2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13',
+  '2025-11-03','2025-11-23','2025-11-24',
+  // 2026
+  '2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20',
+  '2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06',
+  '2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23',
+  '2026-10-12','2026-11-03','2026-11-23',
+]);
+function dateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function isHoliday(date) { return JP_HOLIDAYS.has(dateKey(date)); }
+function isWeekendOrHoliday(date) {
+  const dow = date.getDay();
+  return dow === 0 || dow === 6 || isHoliday(date);
+}
+
+// ============ Habits data ============
+// schedule: 'daily' | 'weekday' | 'weekend' | 'custom'
+//   weekday  = Mon-Fri excluding JP holidays
+//   weekend  = Sat/Sun + JP holidays
+//   custom   = customDays Set<dow 0-6>
+let HABITS = [
+  { id: 1,  name: "Wake at 06:00",         emoji: "⏰", schedule: 'daily',   when: "morning",       min: "alarm + feet on floor" },
+  { id: 2,  name: "Sleep by 24:00",        emoji: "😴", schedule: 'daily',   when: "night",         min: "lights off, even tired" },
+  { id: 3,  name: "Train",                  emoji: "💪", schedule: 'custom',  customDays: new Set([1,3,5,6]), when: "evening", min: "10 push-ups" },
+  { id: 4,  name: "Protein 1.6g/kg",       emoji: "🥤", schedule: 'daily',   when: "morning",       min: "1 shake" },
+  { id: 5,  name: "Read",                   emoji: "📖", schedule: 'daily',   when: "before bed",    min: "1 page" },
+  { id: 6,  name: "Sales practice",         emoji: "🎓", schedule: 'weekday', when: "after coffee",  min: "1 cold call script" },
+  { id: 7,  name: "Plan tomorrow",          emoji: "🗓️", schedule: 'weekday', when: "before bed",    min: "top 1 task" },
+  { id: 8,  name: "Daily report",           emoji: "📨", schedule: 'weekday', when: "end of day",    min: "3 lines" },
+  { id: 9,  name: "Journal",                emoji: "📔", schedule: 'daily',   when: "morning",       min: "1 sentence" },
+  { id: 10, name: "No SNS morning & night", emoji: "🌿", schedule: 'daily',   when: "before sleep",  min: "phone in another room" },
+];
+let nextId = 11;
+
+function isHabitDueOn(h, date) {
+  const sched = h.schedule || 'daily';
+  if (sched === 'daily')   return true;
+  if (sched === 'weekday') return !isWeekendOrHoliday(date);
+  if (sched === 'weekend') return isWeekendOrHoliday(date);
+  if (sched === 'custom')  return h.customDays?.has(date.getDay()) || false;
+  return true;
+}
+function expectedDaysOf(h, ym) {
+  const D = daysInMonth(ym);
+  const { y, m } = ymParts(ym);
+  let count = 0;
+  for (let d = 1; d <= D; d++) {
+    if (isHabitDueOn(h, new Date(y, m - 1, d))) count++;
+  }
+  return Math.max(1, count);
+}
+function dayDueCount(ym, d) {
+  const { y, m } = ymParts(ym);
+  const date = new Date(y, m - 1, d);
+  return activeHabitsFor(ym).filter(h => isHabitDueOn(h, date)).length;
+}
+function scheduleLabel(h) {
+  const t = T();
+  const sched = h.schedule || 'daily';
+  if (sched === 'daily')   return t.schedDaily;
+  if (sched === 'weekday') return t.schedWeekday;
+  if (sched === 'weekend') return t.schedWeekend;
+  if (sched === 'custom') {
+    if (!h.customDays || h.customDays.size === 0) return t.schedCustom;
+    const dows = lang === 'ja'
+      ? ['日','月','火','水','木','金','土']
+      : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const picked = [];
+    for (let i = 0; i < 7; i++) if (h.customDays.has(i)) picked.push(dows[i]);
+    return picked.join(lang === 'ja' ? '・' : ' · ');
+  }
+  return '';
+}
+
+function recordsFor(h, ym) {
+  if (!h.recordsByMonth) h.recordsByMonth = {};
+  if (!h.recordsByMonth[ym]) h.recordsByMonth[ym] = new Set();
+  return h.recordsByMonth[ym];
+}
+function activeHabitsFor(ym) {
+  const skip = monthSkipList[ym];
+  return skip ? HABITS.filter(h => !skip.has(h.id)) : HABITS.slice();
+}
+// (legacy expectedDays/freqShort removed — replaced by expectedDaysOf + scheduleLabel)
+
+// seed plausible May data (days <= TODAY_DAY) + tail of April (so 7-day strip looks alive)
+const seedMap = { 1:[1,2,3,5], 2:[1,3,4], 3:[2,4], 4:[1,2,3,4,5], 5:[1,2,3,4,5], 6:[1,2,4], 7:[2,4,5], 8:[1,3,4,5], 9:[1,3,5], 10:[2,5] };
+const aprilTail = { 1:[28,29,30], 2:[28,30], 3:[29], 4:[28,29,30], 5:[28,29,30], 6:[28,30], 7:[28,29], 8:[28,29,30], 9:[28,30], 10:[29] };
+HABITS.forEach(h => {
+  h.recordsByMonth = {
+    '2026-04': new Set(aprilTail[h.id] || []),
+    [TODAY_MONTH]: new Set(seedMap[h.id] || []),
+  };
+});
+
+// ============ Streak (simple consecutive-day calculation) ============
+function calcStreak() {
+  // walk backwards from TODAY_DAY in TODAY_MONTH; a day "counts" if every active daily-eligible habit was done.
+  // (For the prototype, simpler: streak = consecutive days where >=1 habit was done.)
+  let streak = 0;
+  const list = activeHabitsFor(TODAY_MONTH);
+  if (list.length === 0) return 0;
+  for (let d = TODAY_DAY; d >= 1; d--) {
+    const anyDone = list.some(h => recordsFor(h, TODAY_MONTH).has(d));
+    if (anyDone) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// per-habit consecutive-day streak (back from today across month boundaries)
+function habitStreak(h) {
+  let s = 0;
+  let d = simulatedToday();
+  while (true) {
+    if (isHabitDoneOn(h, d)) {
+      s++;
+      d = new Date(d); d.setDate(d.getDate() - 1);
+    } else break;
+    if (s > 365) break;
+  }
+  return s;
+}
+
+// ============ AI Daily Insight ============
+function generateInsight() {
+  const todayDate = simulatedToday();
+  const list = activeHabitsFor(TODAY_MONTH).filter(h => isHabitDueOn(h, todayDate));
+  const total = list.length;
+  if (total === 0) {
+    return lang === 'ja'
+      ? 'まずは習慣をひとつ。書いた瞬間に、今日が動き出す。'
+      : 'Add your first habit. The day starts the moment you write it down.';
+  }
+  const todayDone = list.filter(h => recordsFor(h, TODAY_MONTH).has(TODAY_DAY)).length;
+  const streak = calcStreak();
+
+  // habit at risk: missed last 3+ days
+  const list2 = list.slice();
+  for (const h of list2) {
+    let missed = 0;
+    let d = simulatedToday();
+    for (let i = 0; i < 3; i++) {
+      if (!isHabitDoneOn(h, d)) missed++;
+      d = new Date(d); d.setDate(d.getDate() - 1);
+    }
+    if (missed >= 3) {
+      return lang === 'ja'
+        ? `<em>${escapeHtml(h.name)}</em> が3日空いてる。今日、ほんの少しでも触れておこう。`
+        : `<em>${escapeHtml(h.name)}</em> has slipped 3 days. Pull it back today — even the minimum version counts.`;
+    }
+  }
+
+  if (todayDone === total) {
+    return lang === 'ja'
+      ? `今日、完璧。<em>${streak}日連続</em>。この調子で、明日も。`
+      : `Perfect day. <em>${streak} days in a row.</em> Show up tomorrow.`;
+  }
+  if (todayDone === 0) {
+    return lang === 'ja'
+      ? '最初のひとつが、いちばん重い。どれでもいいから、まず手をつけよう。'
+      : 'The first check is the hardest. Pick one. Knock it down.';
+  }
+  if (streak >= 14) {
+    return lang === 'ja'
+      ? `<em>${streak}日</em>。脳が「これがあなた」だと覚え始めている。途切れさせるのは、もったいない。`
+      : `<em>${streak} days.</em> Your brain is rewriting "who you are" right now. Don't break it.`;
+  }
+  if (streak >= 7) {
+    return lang === 'ja'
+      ? '一週間、続いた。最初の山は越えてる。あとは静かに、続けるだけ。'
+      : 'A week in. The hardest stretch is behind you. Just keep showing up.';
+  }
+  // top performing habit
+  let top = list[0];
+  for (const h of list) {
+    if (recordsFor(h, TODAY_MONTH).size > recordsFor(top, TODAY_MONTH).size) top = h;
+  }
+  return lang === 'ja'
+    ? `残り <em>${total - todayDone}つ</em>。<em>${escapeHtml(top.name)}</em> が今いちばん安定してる。流れに乗ろう。`
+    : `<em>${total - todayDone} to go.</em> <em>${escapeHtml(top.name)}</em> is leading. Let it pull the others.`;
+}
+
+// ============ Date helpers for 7-day window ============
+// "today" date object for the simulated current day
+function simulatedToday() {
+  const { y, m } = ymParts(TODAY_MONTH);
+  return new Date(y, m - 1, TODAY_DAY);
+}
+function ymOfDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function isHabitDoneOn(h, dateObj) {
+  const ym = ymOfDate(dateObj);
+  if (!h.recordsByMonth || !h.recordsByMonth[ym]) return false;
+  return h.recordsByMonth[ym].has(dateObj.getDate());
+}
+
+// ============ Render: home ============
+const habitsEl = document.getElementById('habits');
+function renderHome() {
+  // date
+  const t = T();
+  const dow = dowOf(TODAY_MONTH, TODAY_DAY);
+  document.getElementById('weekday').textContent = t.daysLong[dow].toUpperCase();
+  const { y, m } = ymParts(TODAY_MONTH);
+  document.getElementById('dateline').textContent =
+    `${t.months[m-1]} · ${String(TODAY_DAY).padStart(2,'0')}`;
+  // streak
+  document.getElementById('streakNum').textContent = calcStreak();
+  document.getElementById('streakLbl').textContent = t.streakDays;
+  // AI insight
+  document.getElementById('aiInsightText').innerHTML = generateInsight();
+
+  // habits — only show those scheduled for today
+  habitsEl.innerHTML = '';
+  const todayDate = simulatedToday();
+  const allActive = activeHabitsFor(TODAY_MONTH);
+  const list = allActive.filter(h => isHabitDueOn(h, todayDate));
+  if (list.length === 0) {
+    const offMsg = allActive.length > 0
+      ? (lang === 'ja' ? '今日は予定された習慣がありません。<br/>静かな日。' : 'No habits scheduled for today.<br/>A quiet day.')
+      : (lang === 'ja' ? '習慣がありません。<br/>右上のメニューから追加してください。' : 'No habits yet.<br/>Open the menu (⋯) to add one.');
+    habitsEl.innerHTML = `<div class="emptyHome">${offMsg}${allActive.length === 0 ? `<div class="add" id="emptyAdd">${t.newHabit}</div>` : ''}</div>`;
+    if (allActive.length === 0) {
+      document.getElementById('emptyAdd').addEventListener('click', startAICoach);
+    }
+    return;
+  }
+  const today = todayDate;
+  list.forEach(h => {
+    const recSet = recordsFor(h, TODAY_MONTH);
+    const isDone = recSet.has(TODAY_DAY);
+    const row = document.createElement('div');
+    row.className = 'habitRow' + (isDone ? ' done' : '');
+    // last 5 days rolling window — today is rightmost
+    let stripHTML = '<div class="strip">';
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      let cls = 'cell';
+      const done = isHabitDoneOn(h, d);
+      if (done) cls += ' done';
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) cls += ' weekend';
+      if (i === 0) cls += ' today';
+      stripHTML += `<span class="${cls}" title="${d.toISOString().slice(0,10)}"></span>`;
+    }
+    stripHTML += '</div>';
+    row.innerHTML = `
+      <span class="em">${h.emoji}</span>
+      <span class="nm">${escapeHtml(h.name)}</span>
+      ${stripHTML}
+      <span class="check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+    `;
+    // tap emoji → open detail (stop propagation so it doesn't toggle)
+    row.querySelector('.em').addEventListener('click', e => {
+      e.stopPropagation();
+      openHabitDetail(h);
+    });
+    // tap row (anywhere else) → toggle today
+    row.addEventListener('click', () => {
+      const wasDone = recSet.has(TODAY_DAY);
+      if (wasDone) recSet.delete(TODAY_DAY);
+      else recSet.add(TODAY_DAY);
+      // animations
+      row.classList.remove('ck-pulse'); void row.offsetWidth; row.classList.add('ck-pulse');
+      const checkEl = row.querySelector('.check');
+      checkEl.classList.remove('ck-pop'); void checkEl.offsetWidth;
+      if (!wasDone) checkEl.classList.add('ck-pop');
+      // re-render
+      renderHome();
+      renderHeatGrid();
+      renderMonthSummary();
+      // flash today's heatmap cell + tickup counter
+      const todayCell = document.querySelectorAll('#monthChart .day')[TODAY_DAY - 1];
+      if (todayCell) {
+        todayCell.classList.remove('flash'); void todayCell.offsetWidth; todayCell.classList.add('flash');
+      }
+      animateCounter();
+    });
+    habitsEl.appendChild(row);
+  });
+  // monthly daily heatmap — render to fixed footer container (NOT inside scrollable habits)
+  const yearContainer = document.getElementById('yearChartContainer');
+  yearContainer.innerHTML = `
+    <div class="yearWrap">
+      <div class="yearLbl">
+        <span id="monthChartLbl"></span>
+        <span id="monthChartRight" style="font-family:'JetBrains Mono',monospace;color:var(--text-3)"></span>
+      </div>
+      <div class="monthHeat" id="monthChart"></div>
+      <div class="heatLegend" id="heatLegend"></div>
+      <div class="accumLine" id="accumLineEl"></div>
+    </div>
+  `;
+  renderMonthChart();
+  // labels
+  document.getElementById('calendarLinkLbl').textContent = t.calendar;
+  document.getElementById('statsLinkLbl').textContent = lang === 'ja' ? '統計' : 'STATS';
+}
+
+// ============ Monthly daily heatmap ============
+function dayDoneCount(ym, d) {
+  // # of habits done on this specific day
+  let total = 0;
+  HABITS.forEach(h => {
+    if (h.recordsByMonth?.[ym]?.has(d)) total++;
+  });
+  return total;
+}
+function renderMonthChart() {
+  const t = T();
+  const chart = document.getElementById('monthChart');
+  if (!chart) return;
+  chart.innerHTML = '';
+  const D = daysInMonth(TODAY_MONTH);
+  for (let d = 1; d <= D; d++) {
+    const cell = document.createElement('div');
+    cell.className = 'day';
+    const future = d > TODAY_DAY;
+    const due = Math.max(1, dayDueCount(TODAY_MONTH, d));
+    const cnt = dayDoneCount(TODAY_MONTH, d);
+    if (future) {
+      cell.classList.add('future');
+    } else {
+      const ratio = cnt / due;
+      let lvl = 0;
+      if (ratio > 0)        lvl = 1;
+      if (ratio >= 0.34)    lvl = 2;
+      if (ratio >= 0.67)    lvl = 3;
+      if (ratio >= 0.95)    lvl = 4;
+      if (lvl > 0) cell.classList.add('lvl' + lvl);
+    }
+    if (d === TODAY_DAY) cell.classList.add('today');
+    cell.title = future
+      ? (lang === 'ja' ? `${d}日（未来）` : `Day ${d} (future)`)
+      : (lang === 'ja' ? `${d}日: ${cnt} / ${due} 件達成` : `Day ${d}: ${cnt} / ${due} done`);
+    cell.addEventListener('click', () => openPanel('calendarPanel'));
+    chart.appendChild(cell);
+  }
+
+  // legend
+  const legendEl = document.getElementById('heatLegend');
+  const lessLbl = lang === 'ja' ? '少' : 'LESS';
+  const moreLbl = lang === 'ja' ? '多' : 'MORE';
+  legendEl.innerHTML = `
+    <span>${lang === 'ja' ? 'タップで詳細' : 'TAP TO EXPAND'}</span>
+    <div class="scale">
+      <span>${lessLbl}</span>
+      <span class="swatch" style="background:#141414"></span>
+      <span class="swatch" style="background:rgba(200,255,61,0.18)"></span>
+      <span class="swatch" style="background:rgba(200,255,61,0.4)"></span>
+      <span class="swatch" style="background:rgba(200,255,61,0.65)"></span>
+      <span class="swatch" style="background:var(--accent)"></span>
+      <span>${moreLbl}</span>
+    </div>
+  `;
+
+  // labels
+  const ym = ymParts(TODAY_MONTH);
+  document.getElementById('monthChartLbl').textContent =
+    lang === 'ja' ? `${t.months[ym.m-1]} 日別` : `${t.months[ym.m-1]} · DAILY`;
+  document.getElementById('monthChartRight').textContent =
+    lang === 'ja' ? `1 → ${D}日` : `1 → ${D}`;
+
+  // total counter
+  const accumEl = document.getElementById('accumLineEl');
+  const monthDone = HABITS.reduce((s, h) => s + (h.recordsByMonth?.[TODAY_MONTH]?.size || 0), 0);
+  const stackedLabel = lang === 'ja' ? '累積' : 'STACKED';
+  const dayLabel = lang === 'ja'
+    ? `${TODAY_DAY}日目 / ${D}`
+    : `DAY ${TODAY_DAY} / ${D}`;
+  accumEl.innerHTML = `
+    <span><b>${monthDone.toLocaleString()}</b> ${stackedLabel}</span>
+    <span class="right">${dayLabel}</span>
+  `;
+}
+
+// ============ Counter tick-up animation ============
+function animateCounter() {
+  const el = document.querySelector('#accumLineEl b');
+  if (!el) return;
+  el.style.transition = 'none';
+  el.style.transform = 'translateY(-4px) scale(1.18)';
+  el.style.color = 'var(--accent)';
+  void el.offsetWidth;
+  el.style.transition = 'transform .35s cubic-bezier(.2,.8,.3,1), color .6s ease-out';
+  requestAnimationFrame(() => {
+    el.style.transform = 'translateY(0) scale(1)';
+    el.style.color = 'var(--text)';
+  });
+}
+
+// ============ Habit Detail ============
+let detailHabit = null;
+function openHabitDetail(h) {
+  detailHabit = h;
+  const t = T();
+  // hero
+  document.getElementById('hdEmoji').textContent = h.emoji;
+  document.getElementById('hdName').textContent = h.name;
+  document.getElementById('hdFreq').textContent = scheduleLabel(h);
+  // commitment text from when/min (the AI coach's artifact)
+  let intent;
+  if (h.when && h.min) {
+    intent = lang === 'ja'
+      ? `${h.when}に、${h.name}。\n調子が悪い日でも、${h.min} だけはやる。`
+      : `When ${h.when}, I will ${h.name}.\nOn hard days, even ${h.min} counts.`;
+  } else {
+    intent = lang === 'ja'
+      ? 'まだ宣言文を設定していません。「編集」から「いつ」と「最小版」を加えると、ここに表示されます。'
+      : 'No commitment set yet. Add "when" + "minimum version" via Edit and it will show here.';
+  }
+  document.getElementById('hdIntent').textContent = intent;
+  document.getElementById('hdIntentLbl').textContent = lang === 'ja' ? '宣言' : 'YOUR COMMITMENT';
+  document.getElementById('hdPanelSub').textContent = lang === 'ja' ? '習慣' : 'HABIT';
+  document.getElementById('hdPanelTitle').textContent = lang === 'ja' ? '詳細' : 'Detail';
+  // stats
+  const streak = habitStreak(h);
+  const monthDone = recordsFor(h, TODAY_MONTH).size;
+  const target = expectedDaysOf(h, TODAY_MONTH);
+  const rate = Math.min(999, Math.round(monthDone / target * 100));
+  document.getElementById('hdStreak').innerHTML = `${streak}<small>${lang === 'ja' ? '日' : 'd'}</small>`;
+  document.getElementById('hdMonth').innerHTML = `${monthDone}<small>/${target}</small>`;
+  document.getElementById('hdRate').innerHTML = `${rate}<small>%</small>`;
+  document.getElementById('hdStreakLbl').textContent = lang === 'ja' ? '連続' : 'STREAK';
+  document.getElementById('hdMonthSubLbl').textContent = lang === 'ja' ? '今月' : 'THIS MONTH';
+  document.getElementById('hdRateLbl').textContent = lang === 'ja' ? '達成率' : 'RATE';
+  document.getElementById('hdLast30Lbl').textContent = lang === 'ja' ? '直近30日' : 'LAST 30 DAYS';
+  // 30-day grid
+  const grid = document.getElementById('hdGrid');
+  grid.innerHTML = '';
+  const today = simulatedToday();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const cell = document.createElement('div');
+    cell.className = 'c';
+    if (isHabitDoneOn(h, d)) cell.classList.add('done');
+    if (i === 0) cell.classList.add('today');
+    cell.title = d.toISOString().slice(0, 10);
+    grid.appendChild(cell);
+  }
+  // buttons
+  document.getElementById('hdEditBtn').textContent = lang === 'ja' ? '編集' : 'EDIT';
+  document.getElementById('hdToggleBtn').textContent = recordsFor(h, TODAY_MONTH).has(TODAY_DAY)
+    ? (lang === 'ja' ? '今日のチェックを外す' : 'UNDO TODAY')
+    : (lang === 'ja' ? '今日に印をつける' : 'MARK TODAY');
+  document.getElementById('hdDeleteBtn').textContent = lang === 'ja' ? 'この習慣を削除' : 'DELETE HABIT';
+
+  openPanel('habitDetailPanel');
+}
+// wire up detail buttons
+document.getElementById('hdEditBtn').addEventListener('click', () => {
+  if (!detailHabit) return;
+  closePanel('habitDetailPanel');
+  openEditModal(detailHabit);
+});
+document.getElementById('hdToggleBtn').addEventListener('click', () => {
+  if (!detailHabit) return;
+  const recSet = recordsFor(detailHabit, TODAY_MONTH);
+  if (recSet.has(TODAY_DAY)) recSet.delete(TODAY_DAY);
+  else recSet.add(TODAY_DAY);
+  renderAll();
+  openHabitDetail(detailHabit); // refresh
+});
+document.getElementById('hdDeleteBtn').addEventListener('click', () => {
+  if (!detailHabit) return;
+  HABITS = HABITS.filter(x => x.id !== detailHabit.id);
+  detailHabit = null;
+  closePanel('habitDetailPanel');
+  renderAll();
+});
+
+// ============ Render: calendar panel ============
+const heatGridEl = document.getElementById('heatGrid');
+function renderHeatGrid() {
+  const t = T();
+  const D = daysInMonth(currentMonth);
+  heatGridEl.style.gridTemplateColumns = `110px repeat(${D}, minmax(14px, 1fr))`;
+  heatGridEl.innerHTML = '';
+  // empty corner
+  heatGridEl.appendChild(document.createElement('div'));
+  for (let d = 1; d <= D; d++) {
+    const dEl = document.createElement('div');
+    dEl.className = 'heatDay';
+    const dow = dowOf(currentMonth, d);
+    if (dow === 0 || dow === 6) dEl.classList.add('we');
+    dEl.textContent = d;
+    heatGridEl.appendChild(dEl);
+  }
+  const list = activeHabitsFor(currentMonth);
+  list.forEach(h => {
+    const lbl = document.createElement('div');
+    lbl.className = 'heatHabit';
+    lbl.textContent = `${h.emoji} ${h.name}`;
+    heatGridEl.appendChild(lbl);
+    const recSet = recordsFor(h, currentMonth);
+    for (let d = 1; d <= D; d++) {
+      const c = document.createElement('div');
+      c.className = 'heatCell';
+      const future = isFutureDay(currentMonth, d);
+      if (future) c.classList.add('future');
+      else if (recSet.has(d)) c.classList.add('done');
+      c.title = `${h.name} · ${currentMonth} · ${d}`;
+      c.addEventListener('click', () => {
+        if (future) return;
+        if (recSet.has(d)) recSet.delete(d); else recSet.add(d);
+        renderHeatGrid();
+        renderMonthSummary();
+        if (currentMonth === TODAY_MONTH) renderHome();
+      });
+      heatGridEl.appendChild(c);
+    }
+  });
+  // titles
+  const { y, m } = ymParts(currentMonth);
+  const monthName = t.monthName(y, m);
+  document.getElementById('calBigTitle').textContent = monthName;
+  document.getElementById('calNavTtl').textContent = monthName;
+  document.getElementById('calBigSub').textContent = t.calendarSub;
+}
+function renderMonthSummary() {
+  const t = T();
+  const list = activeHabitsFor(currentMonth);
+  const done = list.reduce((s, h) => s + recordsFor(h, currentMonth).size, 0);
+  const target = list.reduce((s, h) => s + expectedDaysOf(h, currentMonth), 0);
+  document.getElementById('monthDoneV').innerHTML = `${done}<small>/${target || 0}</small>`;
+  document.getElementById('monthDoneLbl').textContent = t.doneThisMonth;
+  const pct = target > 0 ? Math.round(done / target * 100) : 0;
+  document.getElementById('monthPctV').innerHTML = `${pct}<small>%</small>`;
+  document.getElementById('monthPctLbl').textContent = t.ofTarget;
+}
+function isFutureDay(ym, day) {
+  if (ym < TODAY_MONTH) return false;
+  if (ym > TODAY_MONTH) return true;
+  return day > TODAY_DAY;
+}
+
+// ============ Render: Stats panel ============
+function renderStats() {
+  const t = T();
+  // hero: this month done + percent
+  const list = activeHabitsFor(TODAY_MONTH);
+  const monthDone = list.reduce((s, h) => s + recordsFor(h, TODAY_MONTH).size, 0);
+  const monthTarget = Math.max(1, list.reduce((s, h) => s + expectedDaysOf(h, TODAY_MONTH), 0));
+  const pct = Math.round(monthDone / monthTarget * 100);
+  document.getElementById('statHeroDone').textContent = monthDone;
+  document.getElementById('statHeroPct').innerHTML = `${pct}<span style="font-size:24px;color:var(--text-3)">%</span>`;
+  const ymP = ymParts(TODAY_MONTH);
+  document.getElementById('statHeroDoneLbl').textContent =
+    lang === 'ja' ? `累積 · ${t.months[ymP.m-1]}` : `STACKED · ${t.months[ymP.m-1]}`;
+  document.getElementById('statHeroPctLbl').textContent = lang === 'ja' ? '目標比' : 'OF TARGET';
+
+  // week rings — current calendar week (Sun → Sat)
+  const today = simulatedToday();
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - today.getDay());
+  const ringsEl = document.getElementById('weekRings');
+  ringsEl.innerHTML = '';
+  const dowLabels = lang === 'ja' ? ['日','月','火','水','木','金','土'] : ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(sunday);
+    date.setDate(sunday.getDate() + i);
+    const isToday = date.toDateString() === today.toDateString();
+    const isFuture = date.getTime() > today.getTime() && !isToday;
+    const isWeekend = (date.getDay() === 0 || date.getDay() === 6 || isHoliday(date));
+    let done = 0, due = 0;
+    HABITS.forEach(h => {
+      if (isHabitDueOn(h, date)) {
+        due++;
+        if (isHabitDoneOn(h, date)) done++;
+      }
+    });
+    const dayPct = due > 0 ? Math.round(done / due * 100) : 0;
+    const C = 2 * Math.PI * 18;
+    const offset = isFuture ? C : C - (C * dayPct / 100);
+    const wrap = document.createElement('div');
+    wrap.className = 'dayRingWrap' + (isToday ? ' today' : '') + (isWeekend ? ' weekend' : '');
+    wrap.innerHTML = `
+      <svg class="dayRing${isToday ? ' today' : ''}${isFuture ? ' future' : ''}" viewBox="0 0 44 44">
+        <circle class="bg" cx="22" cy="22" r="18"/>
+        <circle class="fg" cx="22" cy="22" r="18"
+                stroke-dasharray="${C}"
+                stroke-dashoffset="${offset}"
+                transform="rotate(-90 22 22)"/>
+        <text x="22" y="26" text-anchor="middle">${isFuture ? '·' : dayPct}</text>
+      </svg>
+      <div class="dayRingLbl">${dowLabels[i]}</div>
+    `;
+    ringsEl.appendChild(wrap);
+  }
+
+  // per-habit ranking sorted by % completion
+  const ranking = HABITS.map(h => {
+    const done = recordsFor(h, TODAY_MONTH).size;
+    const target = Math.max(1, expectedDaysOf(h, TODAY_MONTH));
+    return { h, done, target, pct: Math.round(done / target * 100) };
+  }).sort((a, b) => b.pct - a.pct);
+  const rankEl = document.getElementById('habitRanking');
+  rankEl.innerHTML = '';
+  const topPct = ranking[0]?.pct || 0;
+  ranking.forEach((r, i) => {
+    let badge = '';
+    if (i === 0 && r.pct >= 70) badge = `<span class="rankBadge">${lang === 'ja' ? 'BEST' : 'TOP'}</span>`;
+    // AT RISK only if (a) bottom ranked, (b) <30%, (c) someone is doing well (>50%)
+    if (i === ranking.length - 1 && r.pct < 30 && topPct >= 50 && ranking.length > 1) {
+      badge = `<span class="rankBadge danger">${lang === 'ja' ? '危険' : 'AT RISK'}</span>`;
+    }
+    let barCls = '';
+    if (r.pct < 50) barCls = ' weak';
+    if (r.pct < 25) barCls = ' danger';
+    const row = document.createElement('div');
+    row.className = 'rankRow';
+    row.innerHTML = `
+      <span class="em">${r.h.emoji}</span>
+      <div class="info">
+        <div class="nm">${escapeHtml(r.h.name)}${badge}</div>
+        <div class="rankBar${barCls}"><span style="width:${Math.min(100, r.pct)}%"></span></div>
+      </div>
+      <div class="rankPct">${r.pct}%<span class="rankCount" style="display:block;margin-top:2px">${r.done}/${r.target}</span></div>
+    `;
+    row.addEventListener('click', () => openHabitDetail(r.h));
+    rankEl.appendChild(row);
+  });
+
+  // labels
+  document.getElementById('statsTitle').textContent = lang === 'ja' ? '統計' : 'Stats';
+  document.getElementById('statsSub').textContent = lang === 'ja' ? '今週 · 今月 · すべての習慣' : 'THIS WEEK · THIS MONTH · ALL HABITS';
+  document.getElementById('statWeekLbl').textContent = lang === 'ja' ? '今週' : 'THIS WEEK';
+  document.getElementById('statHabitsLbl').textContent = lang === 'ja' ? '習慣別 · 今月' : 'PER HABIT · THIS MONTH';
+}
+
+// ============ Render: settings habits manager ============
+const habitMgrEl = document.getElementById('habitMgr');
+function renderMgr() {
+  const t = T();
+  habitMgrEl.innerHTML = '';
+  HABITS.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'habitMgr';
+    const intent = h.when ? (lang === 'ja' ? `${h.when} · ${scheduleLabel(h)}` : `${scheduleLabel(h)} · ${h.when}`) : scheduleLabel(h);
+    row.innerHTML = `
+      <span class="em">${h.emoji}</span>
+      <div class="info">
+        <div class="nm">${escapeHtml(h.name)}</div>
+        <div class="meta">${intent}</div>
+      </div>
+      <span class="arrow">›</span>
+    `;
+    row.addEventListener('click', () => openEditModal(h));
+    habitMgrEl.appendChild(row);
+  });
+  // labels
+  document.getElementById('settTitle').textContent = t.settings;
+  document.getElementById('settSub').textContent = t.settingsSub;
+  document.getElementById('settHabitsTtl').textContent = t.habits;
+  document.getElementById('settLangTtl').textContent = t.language;
+  document.getElementById('settCarryTtl').textContent = t.nextMonth;
+  document.getElementById('addHabitLbl').textContent = t.newHabit;
+  const next = shiftMonth(TODAY_MONTH, 1);
+  const { y: ny, m: nm } = ymParts(next);
+  document.getElementById('planNextLbl').textContent = t.planNextLbl(t.monthShort(ny, nm));
+}
+
+function renderAll() {
+  renderHome();
+  renderHeatGrid();
+  renderMonthSummary();
+  renderMgr();
+}
+
+// ============ Panels ============
+function openPanel(id) {
+  document.getElementById(id).classList.add('show');
+}
+function closePanel(id) {
+  document.getElementById(id).classList.remove('show');
+}
+document.getElementById('menuBtn').addEventListener('click', () => openPanel('settingsPanel'));
+document.getElementById('openCalendar').addEventListener('click', () => openPanel('calendarPanel'));
+document.getElementById('openStats').addEventListener('click', () => { renderStats(); openPanel('statsPanel'); });
+document.querySelectorAll('[data-close]').forEach(b =>
+  b.addEventListener('click', () => closePanel(b.dataset.close))
+);
+
+document.getElementById('prevMonth').addEventListener('click', () => navigateMonth(-1));
+document.getElementById('nextMonth').addEventListener('click', () => navigateMonth(1));
+function navigateMonth(n) {
+  const newMonth = shiftMonth(currentMonth, n);
+  currentMonth = newMonth;
+  if (!monthsInitialized.has(newMonth) && HABITS.length > 0) {
+    // silent carry-over: bring everything forward (no friction)
+    monthsInitialized.add(newMonth);
+  }
+  renderAll();
+}
+document.getElementById('planNextBtn').addEventListener('click', () => {
+  closePanel('settingsPanel');
+  const next = shiftMonth(TODAY_MONTH, 1);
+  currentMonth = next;
+  monthsInitialized.add(next);
+  openPanel('calendarPanel');
+  renderAll();
+});
+
+// language toggle
+document.querySelectorAll('.langSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    lang = b.dataset.lang;
+    document.body.classList.toggle('lang-ja', lang === 'ja');
+    document.body.classList.toggle('lang-en', lang === 'en');
+    document.querySelectorAll('.langSeg button').forEach(x => x.classList.toggle('on', x.dataset.lang === lang));
+    renderAll();
+  });
+});
+
+// ============ AI COACH (4 steps) ============
+const EMOJI_LIB = [
+  "⏰","😴","💪","🏃‍♂️","🚴","🏊‍♂️","🧘‍♂️","🥗",
+  "🥤","💧","🍎","☕","🚭","🍷","💊","🪥",
+  "📖","🎓","✍️","📔","🗓️","📨","📊","💼",
+  "🎯","🧠","🎵","🎨","🌿","🌅","🌙","📱",
+  "🛠️","💰","📈","🚿","🧴","🧹","🐕","🌳"
+];
+// (legacy FREQS removed — replaced by SCHED_OPTIONS)
+
+const ai = {
+  step: 1,
+  name: '',
+  emoji: '🎯',
+  when: '',
+  min: '',
+  schedule: 'daily',
+  customDays: new Set(),
+  editingId: null,
+};
+
+function startAICoach() {
+  ai.step = 1;
+  ai.name = '';
+  ai.emoji = '🎯';
+  ai.when = '';
+  ai.min = '';
+  ai.schedule = 'daily';
+  ai.customDays = new Set();
+  ai.editingId = null;
+  closePanel('settingsPanel');
+  document.getElementById('aiCoach').classList.add('show');
+  paintAIStep();
+  setTimeout(() => document.getElementById('ai1Input').focus(), 200);
+}
+document.getElementById('addHabitBtn').addEventListener('click', startAICoach);
+document.getElementById('aiClose').addEventListener('click', () => document.getElementById('aiCoach').classList.remove('show'));
+
+document.getElementById('aiNextBtn').addEventListener('click', () => {
+  if (ai.step === 1) {
+    const v = document.getElementById('ai1Input').value.trim();
+    if (!v) return shake('ai1Input');
+    ai.name = v;
+    // suggest emoji from name keywords (very simple heuristic)
+    ai.emoji = suggestEmoji(v);
+    ai.step = 2;
+  } else if (ai.step === 2) {
+    ai.step = 3;
+  } else if (ai.step === 3) {
+    if (!ai.when) return;
+    ai.step = 4;
+    // suggest min based on name (heuristic)
+    ai.min = suggestMin(ai.name);
+    document.getElementById('minInput').value = ai.min;
+    // suggest schedule from "when" (work/coffee → weekday)
+    ai.schedule = suggestSchedule(ai.when);
+  } else if (ai.step === 4) {
+    const minV = document.getElementById('minInput').value.trim();
+    if (!minV) return shake('minInput');
+    ai.min = minV;
+    saveFromAI();
+    return;
+  }
+  paintAIStep();
+});
+document.getElementById('aiBackBtn').addEventListener('click', () => {
+  if (ai.step > 1) { ai.step--; paintAIStep(); }
+});
+
+function shake(id) {
+  const el = document.getElementById(id);
+  el.style.borderColor = 'var(--danger)';
+  setTimeout(() => el.style.borderColor = '', 1200);
+  el.focus();
+}
+
+function paintAIStep() {
+  const t = T();
+  // step dots
+  document.querySelectorAll('#stepDots span').forEach((d, i) => {
+    d.classList.toggle('on', i < ai.step);
+  });
+  // toggle steps
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('aiStep' + i).style.display = (i === ai.step) ? '' : 'none';
+  }
+  // step 1
+  document.getElementById('ai1Q').textContent = t.ai1Q;
+  document.getElementById('ai1Hint').textContent = t.ai1Hint;
+  document.getElementById('ai1Input').placeholder = t.ai1Placeholder;
+  const ex = document.getElementById('ai1Examples');
+  ex.innerHTML = '';
+  t.ai1Examples.forEach(e => {
+    const c = document.createElement('div');
+    c.className = 'chip small';
+    c.textContent = e;
+    c.addEventListener('click', () => { document.getElementById('ai1Input').value = e; document.getElementById('ai1Input').focus(); });
+    ex.appendChild(c);
+  });
+  // step 2
+  document.getElementById('ai2Q').textContent = t.ai2Q;
+  document.getElementById('ai2Hint').textContent = t.ai2Hint;
+  buildEmojiPicker(document.getElementById('emojiPick'), e => { ai.emoji = e; }, () => ai.emoji);
+  // step 3
+  document.getElementById('ai3Q').textContent = t.ai3Q;
+  document.getElementById('ai3Hint').textContent = t.ai3Hint;
+  const wc = document.getElementById('whenChips');
+  wc.innerHTML = '';
+  t.whenChips.forEach((label, i) => {
+    const c = document.createElement('div');
+    c.className = 'chip' + (ai.when === label ? ' on' : '');
+    c.textContent = label;
+    c.addEventListener('click', () => {
+      if (i === t.whenChips.length - 1) {
+        ai.when = '';
+        const cust = document.getElementById('whenCustom');
+        cust.style.display = '';
+        cust.placeholder = t.whenCustomPh;
+        cust.focus();
+        cust.oninput = () => { ai.when = cust.value.trim(); };
+      } else {
+        ai.when = label;
+        document.getElementById('whenCustom').style.display = 'none';
+      }
+      paintAIStep();
+    });
+    wc.appendChild(c);
+  });
+  // step 4
+  document.getElementById('ai4Q').textContent = t.ai4Q;
+  document.getElementById('ai4Hint').textContent = t.ai4Hint;
+  document.getElementById('minInput').placeholder = t.minPlaceholder;
+  const me = document.getElementById('minExamples');
+  me.innerHTML = '';
+  t.minExamples.forEach(e => {
+    const c = document.createElement('div');
+    c.className = 'chip small';
+    c.textContent = e;
+    c.addEventListener('click', () => {
+      document.getElementById('minInput').value = e;
+      ai.min = e;
+      updateIntent();
+    });
+    me.appendChild(c);
+  });
+  document.getElementById('ai4FreqLbl').textContent = t.freqLbl;
+  buildSchedChips(
+    document.getElementById('aiFreq'),
+    document.getElementById('aiDow'),
+    document.getElementById('aiSchedHint'),
+    s => { ai.schedule = s; },
+    () => ai.schedule,
+    d => { if (ai.customDays.has(d)) ai.customDays.delete(d); else ai.customDays.add(d); },
+    () => ai.customDays
+  );
+  // intent
+  document.getElementById('intentLbl').textContent = t.intentLbl;
+  document.getElementById('minInput').oninput = updateIntent;
+  updateIntent();
+
+  // back/next button
+  document.getElementById('aiBackBtn').style.display = ai.step > 1 ? '' : 'none';
+  document.getElementById('aiNextBtn').textContent =
+    ai.step === 4 ? t.saveBtn : t.continueBtn;
+}
+
+function updateIntent() {
+  const t = T();
+  const minV = document.getElementById('minInput').value.trim() || ai.min || (lang === 'ja' ? '一歩' : 'one rep');
+  const text = t.intent({ name: ai.name, when: ai.when || (lang === 'ja' ? 'いつでも' : 'whenever you can'), min: minV });
+  document.getElementById('intentText').textContent = text;
+}
+
+function buildEmojiPicker(container, onPick, getCurrent) {
+  container.innerHTML = '';
+  EMOJI_LIB.forEach(e => {
+    const d = document.createElement('div');
+    d.textContent = e;
+    if (e === getCurrent()) d.classList.add('sel');
+    d.addEventListener('click', () => {
+      onPick(e);
+      container.querySelectorAll('div').forEach(x => x.classList.remove('sel'));
+      d.classList.add('sel');
+    });
+    container.appendChild(d);
+  });
+}
+// schedule chips (4 options) + optional day-of-week chips for "custom"
+const SCHED_OPTIONS = [
+  { key: 'daily',   icon: '∞',   labelKey: 'schedDaily',   subEn: 'Every day, no exceptions',  subJa: '毎日、例外なし' },
+  { key: 'weekday', icon: '⚒',  labelKey: 'schedWeekday', subEn: 'Mon–Fri (skip JP holidays)', subJa: '月〜金（祝日は除外）' },
+  { key: 'weekend', icon: '☀',   labelKey: 'schedWeekend', subEn: 'Sat / Sun + JP holidays',    subJa: '土・日 + 祝日' },
+  { key: 'custom',  icon: '⚙',   labelKey: 'schedCustom',  subEn: 'Pick the days yourself',     subJa: '自分で曜日を選ぶ' },
+];
+function buildSchedChips(freqEl, dowEl, hintEl, onSched, getSched, onDow, getCustomDays) {
+  const t = T();
+  freqEl.innerHTML = '';
+  SCHED_OPTIONS.forEach(opt => {
+    const c = document.createElement('div');
+    const sel = (opt.key === getSched());
+    c.className = 'freqC' + (sel ? ' sel' : '');
+    const sub = lang === 'ja' ? opt.subJa : opt.subEn;
+    c.innerHTML = `<b>${t[opt.labelKey]}</b><small>${sub}</small>`;
+    c.addEventListener('click', () => {
+      onSched(opt.key);
+      buildSchedChips(freqEl, dowEl, hintEl, onSched, getSched, onDow, getCustomDays);
+    });
+    freqEl.appendChild(c);
+  });
+  // dow chips visible only when 'custom'
+  if (getSched() === 'custom') {
+    dowEl.style.display = '';
+    dowEl.innerHTML = '';
+    const dows = lang === 'ja'
+      ? ['日','月','火','水','木','金','土']
+      : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const cur = getCustomDays();
+    dows.forEach((label, i) => {
+      const c = document.createElement('div');
+      c.className = 'dowC' + ((i === 0 || i === 6) ? ' weekend' : '') + (cur.has(i) ? ' sel' : '');
+      c.textContent = label;
+      c.addEventListener('click', () => {
+        onDow(i);
+        buildSchedChips(freqEl, dowEl, hintEl, onSched, getSched, onDow, getCustomDays);
+      });
+      dowEl.appendChild(c);
+    });
+  } else {
+    dowEl.style.display = 'none';
+  }
+  if (hintEl) hintEl.textContent = (getSched() === 'weekday' || getSched() === 'weekend') ? t.schedHint : '';
+}
+function suggestSchedule(when) {
+  const w = (when || '').toLowerCase();
+  if (w.includes('work') || w.includes('coffee') || w.includes('仕事') || w.includes('コーヒー')) return 'weekday';
+  return 'daily';
+}
+
+function suggestEmoji(name) {
+  const n = name.toLowerCase();
+  const map = [
+    ['read', '📖'], ['書', '✍️'], ['write', '✍️'], ['journal', '📔'], ['日記', '📔'],
+    ['run', '🏃‍♂️'], ['ラン', '🏃‍♂️'], ['gym', '💪'], ['筋', '💪'], ['train', '💪'],
+    ['protein', '🥤'], ['プロテイン', '🥤'], ['water', '💧'], ['水', '💧'],
+    ['sleep', '😴'], ['寝', '😴'], ['wake', '⏰'], ['起き', '⏰'],
+    ['meditat', '🧘‍♂️'], ['瞑想', '🧘‍♂️'], ['cold', '🚿'], ['冷水', '🚿'],
+    ['no sns', '🌿'], ['sns', '📱'], ['plan', '🗓️'], ['計画', '🗓️'],
+    ['report', '📨'], ['report', '📨'], ['report', '📨'],
+    ['stretch', '🧘‍♂️'], ['ストレッチ', '🧘‍♂️'],
+  ];
+  for (const [k, e] of map) if (n.includes(k)) return e;
+  return '🎯';
+}
+function suggestMin(name) {
+  const n = name.toLowerCase();
+  if (lang === 'ja') {
+    if (n.includes('読') || n.includes('read')) return '1ページ';
+    if (n.includes('走') || n.includes('run')) return '5分歩く';
+    if (n.includes('筋') || n.includes('train') || n.includes('gym')) return '腕立て10回';
+    if (n.includes('書') || n.includes('write') || n.includes('journal')) return '1文だけ';
+    if (n.includes('瞑想') || n.includes('meditat')) return '1分の呼吸';
+    return 'ほんの一歩';
+  } else {
+    if (n.includes('read')) return '1 page';
+    if (n.includes('run')) return '5-min walk';
+    if (n.includes('gym') || n.includes('train')) return '10 push-ups';
+    if (n.includes('write') || n.includes('journal')) return '1 sentence';
+    if (n.includes('meditat')) return '1 minute of breathing';
+    return 'one small rep';
+  }
+}
+function saveFromAI() {
+  const customDays = ai.schedule === 'custom' ? new Set(ai.customDays) : undefined;
+  if (ai.editingId) {
+    const h = HABITS.find(x => x.id === ai.editingId);
+    h.name = ai.name; h.emoji = ai.emoji;
+    h.schedule = ai.schedule; h.customDays = customDays;
+    h.when = ai.when; h.min = ai.min;
+  } else {
+    HABITS.push({
+      id: nextId++, name: ai.name, emoji: ai.emoji,
+      schedule: ai.schedule, customDays,
+      when: ai.when, min: ai.min,
+      recordsByMonth: {}
+    });
+  }
+  document.getElementById('aiCoach').classList.remove('show');
+  renderAll();
+}
+
+// ============ Edit modal (for existing habits) ============
+const editModal = document.getElementById('editModal');
+let editingHabit = null;
+function openEditModal(h) {
+  editingHabit = h;
+  const t = T();
+  document.getElementById('editTitle').textContent = t.editTitle;
+  document.getElementById('editIconLbl').textContent = t.iconLbl;
+  document.getElementById('editNameLbl').textContent = t.nameLbl;
+  document.getElementById('editFreqLbl').textContent = t.freqLbl;
+  document.getElementById('editNameInput').value = h.name;
+  // tmp state for emoji + schedule + customDays
+  editingHabit._tmpEmoji = h.emoji;
+  editingHabit._tmpSched = h.schedule || 'daily';
+  editingHabit._tmpDays = new Set(h.customDays || []);
+  buildEmojiPicker(
+    document.getElementById('editEmojiPick'),
+    e => editingHabit._tmpEmoji = e,
+    () => editingHabit._tmpEmoji
+  );
+  buildSchedChips(
+    document.getElementById('editFreq'),
+    document.getElementById('editDow'),
+    null,
+    s => editingHabit._tmpSched = s,
+    () => editingHabit._tmpSched,
+    d => { if (editingHabit._tmpDays.has(d)) editingHabit._tmpDays.delete(d); else editingHabit._tmpDays.add(d); },
+    () => editingHabit._tmpDays
+  );
+  document.getElementById('editSave').textContent = t.saveLbl;
+  document.getElementById('editDelete').textContent = t.deleteLbl;
+  editModal.classList.add('show');
+}
+editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('show'); });
+document.getElementById('editCancel').addEventListener('click', () => editModal.classList.remove('show'));
+document.getElementById('editSave').addEventListener('click', () => {
+  if (!editingHabit) return;
+  const name = document.getElementById('editNameInput').value.trim();
+  if (!name) return shake('editNameInput');
+  editingHabit.name = name;
+  editingHabit.emoji = editingHabit._tmpEmoji;
+  editingHabit.schedule = editingHabit._tmpSched;
+  editingHabit.customDays = editingHabit._tmpSched === 'custom' ? new Set(editingHabit._tmpDays) : undefined;
+  delete editingHabit._tmpEmoji;
+  delete editingHabit._tmpSched;
+  delete editingHabit._tmpDays;
+  editModal.classList.remove('show');
+  renderAll();
+});
+document.getElementById('editDelete').addEventListener('click', () => {
+  if (!editingHabit) return;
+  HABITS = HABITS.filter(x => x.id !== editingHabit.id);
+  editingHabit = null;
+  editModal.classList.remove('show');
+  renderAll();
+});
+
+// ============ Helpers ============
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ============ Persistence ============
+const STORAGE_KEY = 'habitApp.v5';
+function persistState() {
+  try {
+    const habits = HABITS.map(h => ({
+      id: h.id,
+      name: h.name,
+      emoji: h.emoji,
+      schedule: h.schedule,
+      customDays: h.customDays ? Array.from(h.customDays) : undefined,
+      when: h.when,
+      min: h.min,
+      recordsByMonth: Object.fromEntries(
+        Object.entries(h.recordsByMonth || {}).map(([ym, set]) => [ym, Array.from(set)])
+      ),
+    }));
+    const state = {
+      habits, nextId, lang,
+      monthsInitialized: Array.from(monthsInitialized),
+      monthSkipList: Object.fromEntries(
+        Object.entries(monthSkipList).map(([ym, set]) => [ym, Array.from(set)])
+      ),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) { /* localStorage might be blocked */ }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    HABITS = (s.habits || []).map(h => ({
+      ...h,
+      customDays: h.customDays ? new Set(h.customDays) : undefined,
+      recordsByMonth: Object.fromEntries(
+        Object.entries(h.recordsByMonth || {}).map(([ym, arr]) => [ym, new Set(arr)])
+      ),
+    }));
+    if (typeof s.nextId === 'number') nextId = s.nextId;
+    if (s.lang) {
+      lang = s.lang;
+      document.body.classList.toggle('lang-ja', lang === 'ja');
+      document.body.classList.toggle('lang-en', lang === 'en');
+      document.querySelectorAll('.langSeg button').forEach(b => {
+        b.classList.toggle('on', b.dataset.lang === lang);
+      });
+    }
+    if (Array.isArray(s.monthsInitialized)) {
+      monthsInitialized.clear();
+      s.monthsInitialized.forEach(m => monthsInitialized.add(m));
+    }
+    if (s.monthSkipList) {
+      Object.keys(monthSkipList).forEach(k => delete monthSkipList[k]);
+      Object.entries(s.monthSkipList).forEach(([ym, arr]) => {
+        monthSkipList[ym] = new Set(arr);
+      });
+    }
+    return true;
+  } catch (e) { return false; }
+}
+
+// wrap renderAll to also persist on every paint
+(function() {
+  const orig = renderAll;
+  renderAll = function() { orig(); persistState(); };
+})();
+
+// ============ Init ============
+loadState();
+renderAll();
+</script>
+
+</body>
+</html>
